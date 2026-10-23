@@ -43,3 +43,7 @@ npm run lint
 ## ECC
 
 پیکربندی عامل Cursor از [ECC](https://github.com/affaan-m/ECC) نسخهٔ ۲.۲.۳ (کامیت `90606c8`) با دستور رسمی `./install.sh --target cursor typescript --enable-hooks` داخل `.cursor/` نصب شده است. قانون‌ها، مهارت‌ها، عامل‌های `ecc-*` و هوک‌های پروژه اینجاست. این فایل‌ها سایت عمومی را عوض نمی‌کنند.
+
+## Agent Skills
+
+بیست‌وپنج مهارت مهندسی از [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) نسخهٔ ۰.۶.۱۳ (کامیت `aeac41d`) طبق [راهنمای Cursor](https://github.com/addyosmani/agent-skills/blob/main/docs/cursor-setup.md) در `.cursor/skills/` کپی شده‌اند. چک‌لیست‌های مشترک در `.cursor/references/` هستند تا مسیر نسبی `../../references/` از داخل هر مهارت درست باشد. قانون کوتاه `.cursor/rules/agent-skills.mdc` مسیریابی را روشن می‌کند. فایل‌های ECC بازنویسی نشده‌اند.
