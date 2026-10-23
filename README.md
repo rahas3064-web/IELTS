@@ -15,7 +15,7 @@ npm install
 npm run dev
 ```
 
-برنامه روی [http://127.0.0.1:38471](http://127.0.0.1:38471) بالا می‌آید. `npm run dev` همان `node server.js` است.
+برنامه روی [http://127.0.0.1:38471](http://127.0.0.1:38471) بالا می‌آید. نسخهٔ قابل‌دیدن برای همه روی [GitHub Pages](https://rahas3064-web.github.io/IELTS/) است. `npm run dev` همان `node server.js` است.
 
 ```bash
 npm run build

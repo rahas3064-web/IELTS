@@ -15,10 +15,10 @@ export function PublicHeader() {
     <header className="mx-auto flex w-full max-w-6xl items-center gap-3 px-4 py-4">
       <Link href="/"><BrandLockup /></Link>
       <nav className="ms-4 hidden items-center gap-4 text-sm text-muted-foreground md:flex" aria-label={bi("عمومی", "Public")}>
-        <a href="/#method" className="hover:text-foreground">{bi("روش کار", "How it works")}</a>
-        <a href="/#sample" className="hover:text-foreground">{bi("نمونه گزارش", "Sample report")}</a>
+        <a href={`${import.meta.env.BASE_URL}#method`} className="hover:text-foreground">{bi("روش کار", "How it works")}</a>
+        <a href={`${import.meta.env.BASE_URL}#sample`} className="hover:text-foreground">{bi("نمونه گزارش", "Sample report")}</a>
         <Link href="/plans" className="hover:text-foreground">{bi("پلن‌ها", "Plans")}</Link>
-        <a href="/#faq" className="hover:text-foreground">{bi("پرسش‌ها", "FAQ")}</a>
+        <a href={`${import.meta.env.BASE_URL}#faq`} className="hover:text-foreground">{bi("پرسش‌ها", "FAQ")}</a>
       </nav>
       <div className="ms-auto flex items-center gap-1">
         <Button variant="ghost" size="sm" onClick={() => setLocale(state.locale === "fa" ? "en" : "fa")}>
