@@ -9,6 +9,14 @@ const isProd = process.env.NODE_ENV === "production";
 
 const app = express();
 
+app.get("/api/health", (_req, res) => {
+  res.json({
+    ok: true,
+    service: "bandora",
+    database: process.env.DATABASE_URL ? "configured" : "not_configured",
+  });
+});
+
 if (isProd) {
   const dist = path.join(root, "dist");
   app.use(express.static(dist));
@@ -32,5 +40,5 @@ if (isProd) {
 }
 
 app.listen(port, host, () => {
-  console.log(`IELTS Readiness listening on http://127.0.0.1:${port}`);
+  console.log(`Bandora listening on http://127.0.0.1:${port}`);
 });

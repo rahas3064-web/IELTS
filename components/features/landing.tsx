@@ -7,6 +7,7 @@ import { PublicFooter, PublicHeader } from "@/components/shell/public-header";
 import { Callout, ReadinessFigure, SkillBoard, TrendChart } from "@/components/product/bits";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { buttonVariants } from "@/components/ui/button";
+import { BRAND } from "@/lib/brand";
 import { todayIso } from "@/lib/format";
 import { buildView, sourceFromScenario } from "@/lib/model";
 import { SCENARIOS } from "@/lib/scenarios";
@@ -34,7 +35,7 @@ export function LandingPage() {
       <main>
         <section className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-10 lg:grid-cols-[1.05fr_0.95fr] lg:py-16">
           <div>
-            <p className="text-sm font-medium text-primary">{bi("برای فارسی‌زبانانی که بدون معلم خصوصی آماده می‌شوند", "For Persian speakers preparing without a private tutor")}</p>
+            <p className="text-sm font-medium text-primary">{bi(BRAND.tagline.fa, BRAND.tagline.en)}</p>
             <h1 className="mt-3 max-w-xl text-4xl font-semibold leading-[1.25] tracking-tight sm:text-5xl">
               {bi("فاصله تا نمره هدف را با شواهد ببینید، نه با حدس.", "See the distance to your target with evidence, not with a guess.")}
             </h1>

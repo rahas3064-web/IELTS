@@ -9,7 +9,7 @@ import { StoreProvider } from "@/lib/store";
 function BootScreen() {
   return (
     <div className="grid min-h-dvh place-items-center px-6">
-      <p className="text-sm text-muted-foreground">آمادگی آیلتس</p>
+      <p className="text-sm text-muted-foreground">باندورا</p>
     </div>
   );
 }

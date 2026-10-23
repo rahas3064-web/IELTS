@@ -10,8 +10,9 @@ import { useApp } from "@/lib/store";
 import type { Locale, Skill } from "@/lib/types";
 import { SKILLS } from "@/lib/types";
 import { cn } from "cn";
+import { BRAND, PRODUCT_NAME } from "@/lib/brand";
 
-export const PRODUCT_NAME = "IELTS Readiness";
+export { PRODUCT_NAME };
 
 export function Mark({ className }: { className?: string }) {
   return (
@@ -29,8 +30,8 @@ export function BrandLockup() {
     <span className="flex items-center gap-2">
       <Mark />
       <span className="leading-tight">
-        <span className="block text-sm font-semibold">{bi("آمادگی آیلتس", "IELTS Readiness")}</span>
-        <span className="block text-[11px] text-muted-foreground">{bi("نام موقت", "Temporary name")}</span>
+        <span className="block text-sm font-semibold">{bi(BRAND.name.fa, BRAND.name.en)}</span>
+        <span className="block text-[11px] text-muted-foreground">{bi(BRAND.support.fa, BRAND.support.en)}</span>
       </span>
     </span>
   );

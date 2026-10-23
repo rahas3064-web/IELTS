@@ -2,7 +2,7 @@
 
 این پوشه قرارداد محصول و پیاده‌سازی است. پروتوتایپ در ریشه مخزن اجرا می‌شود و این متن‌ها می‌گویند کدام رفتار واقعاً در مرورگر حساب می‌شود و کدام فقط شبیه‌سازی یا برنامه آینده است.
 
-نام محصول موقت است: **IELTS Readiness / آمادگی آیلتس**.
+نام کاری محصول **Bandora / باندورا** است و در `lib/brand.ts` تعریف شده. سندهای قدیمی‌تر هنوز نام موقت قبلی را در عنوان تاریخی دارند.
 
 | # | سند | موضوع |
 | --- | --- | --- |
@@ -30,5 +30,11 @@
 | 22 | [cursor-guide.md](cursor-guide.md) | پیاده‌سازی مرحله‌ای |
 | 23 | [capability-matrix.md](capability-matrix.md) | زنده، نمایشی، آینده |
 | 24 | [release.md](release.md) | نسخه‌بندی و بازیابی |
+| 25 | [technical-audit.md](technical-audit.md) | ممیزی فنی و خط پایه |
+| 26 | [bug-backlog.md](bug-backlog.md) | باگ‌های تأییدشده |
+| 27 | [mvp-gap-analysis.md](mvp-gap-analysis.md) | فاصله تا MVP |
+| 28 | [implementation-roadmap.md](implementation-roadmap.md) | ترتیب اجرا |
+| 29 | [database-design.md](database-design.md) | طرح PostgreSQL |
+| 30 | [deployment-decision.md](deployment-decision.md) | تصمیم میزبانی، منتظر تأیید |
 
 منطق زنده در `lib/model.ts`، `lib/scenarios.ts` و `lib/questions.ts` است. اگر سند و کد اختلاف داشتند، کد پروتوتایپ منبع رفتار فعلی است و سند باید اصلاح شود.

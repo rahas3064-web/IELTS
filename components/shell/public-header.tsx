@@ -4,6 +4,7 @@ import Link from "@/components/link";
 import { useTheme } from "next-themes";
 import { Moon, Sun } from "lucide-react";
 import { BrandLockup } from "@/components/product/bits";
+import { BRAND } from "@/lib/brand";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { useApp } from "@/lib/store";
 import { cn } from "cn";
@@ -39,7 +40,7 @@ export function PublicFooter() {
   return (
     <footer className="border-t px-4 py-8 text-sm text-muted-foreground">
       <div className="mx-auto flex max-w-6xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <p>{bi("آمادگی آیلتس یک نام موقت است. هیچ نمره‌ای تضمین نمی‌شود.", "IELTS Readiness is a temporary name. No score is guaranteed.")}</p>
+        <p>{bi(BRAND.disclaimer.fa, BRAND.disclaimer.en)}</p>
         <div className="flex gap-4">
           <Link href="/help" className="hover:text-foreground">{bi("راهنما", "Help")}</Link>
           <Link href="/plans" className="hover:text-foreground">{bi("پلن‌ها", "Plans")}</Link>

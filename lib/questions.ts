@@ -598,6 +598,10 @@ export const MOCKS: {
   },
 ];
 
+export function mockArchiveScope(mockId: string): "full" | Skill {
+  return MOCKS.find((item) => item.id === mockId)?.scope ?? "full";
+}
+
 export function bankItem(id: string) {
   const item = BANK.find((entry) => entry.id === id);
   if (!item) throw new Error(`Missing bank item ${id}`);

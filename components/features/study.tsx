@@ -5,11 +5,11 @@ import { useMemo, useState } from "react";
 import { useRouter } from "@/lib/navigation";
 import { Callout, EmptyBlock, PageIntro, skillLabel } from "@/components/product/bits";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { answerIsCorrect, overallBand } from "@/lib/model";
-import { BANK, MOCKS, PRACTICE_IDS, bankItem } from "@/lib/questions";
+import { answerIsCorrect, overallBand, scoreMockPaper } from "@/lib/model";
+import { BANK, MOCKS, PRACTICE_IDS, bankItem, mockArchiveScope } from "@/lib/questions";
 import { SKILL_WORD } from "@/lib/signals";
 import { useApp } from "@/lib/store";
-import type { Skill, SkillBands } from "@/lib/types";
+import type { Skill } from "@/lib/types";
 import { SKILLS } from "@/lib/types";
 import { formatBand, formatDate, formatNumber } from "@/lib/format";
 import { cn } from "cn";
@@ -168,19 +168,9 @@ export function MockRunner({ id }: { id: string }) {
       setError(bi("اتصال قطع است. پاسخ‌ها روی صفحه مانده‌اند.", "You are offline. Answers are still on the page."));
       return;
     }
-    const objective = items.filter((item) => item.kind !== "writing" && item.kind !== "speaking");
-    const correct = objective.filter((item) => answerIsCorrect(item.id, answers[item.id])).length;
-    const ratio = objective.length ? correct / objective.length : 0.5;
     const base = view?.source.bands ?? { listening: 5.5, reading: 5.5, writing: 5.5, speaking: 5.5 };
-    const bands: SkillBands = { ...base };
-    if (mock.scope === "full" || mock.scope === "listening") bands.listening = Math.min(8, Math.max(3, base.listening + (ratio - 0.5)));
-    if (mock.scope === "full" || mock.scope === "reading") bands.reading = Math.min(8, Math.max(3, base.reading + (ratio - 0.5)));
-    saveMock(mock.id, {
-      listening: Math.round(bands.listening * 2) / 2,
-      reading: Math.round(bands.reading * 2) / 2,
-      writing: bands.writing,
-      speaking: bands.speaking,
-    }, correct, objective.length, answers);
+    const scored = scoreMockPaper({ scope: mock.scope, itemIds: mock.itemIds, answers, base });
+    saveMock(mock.id, scored.bands, scored.correct, scored.total, answers);
     setDone(true);
     setError("");
   };
@@ -206,7 +196,13 @@ export function MockRunner({ id }: { id: string }) {
       {done && attempt ? (
         <Callout tone="success" title={bi("گزارش نمونه آزمونک", "Sample mock report")}>
           <p>{bi(`پاسخ عینی ${attempt.correct} از ${attempt.total}.`, `Objective answers: ${attempt.correct} of ${attempt.total}.`)}</p>
-          <p>{bi("نمره مهارت‌های عینی کمی نسبت به برآورد فعلی جابه‌جا شد. نوشتن و صحبت کردن از روی این آزمونک کوتاه دوباره نمره نگرفتند.", "Objective skills moved slightly against the current estimate. Writing and speaking were not re-marked from this short paper.")}</p>
+          <p>
+            {mock.scope === "writing"
+              ? bi("نمره نوشتن با قاعده طول و ساختار همین پاسخ‌ها عوض شد. این تصحیح انسانی یا هوش مصنوعی نیست.", "The writing band changed using the length-and-structure rule on these answers. This is not a human or AI mark.")
+              : mock.scope === "speaking"
+                ? bi("نمره صحبت کردن با قاعده طول رونوشت عوض شد. تلفظ نمره ندارد.", "The speaking band changed from transcript length. Pronunciation is not scored.")
+                : bi("نمره مهارت‌های عینی کمی نسبت به برآورد فعلی جابه‌جا شد. نوشتن و صحبت کردن از روی این آزمونک کوتاه دوباره نمره نگرفتند.", "Objective skills moved slightly against the current estimate. Writing and speaking were not re-marked from this short paper.")}
+          </p>
           <p>{bi(`کلی تقریبی ${formatBand(overallBand(attempt.bands), state.locale)}.`, `Approximate overall ${formatBand(overallBand(attempt.bands), state.locale)}.`)}</p>
           {view ? <p>{bi(`فاصله نوشتن تا حداقل هدف: ${formatBand(Math.max(0, view.source.targetSkills.writing - attempt.bands.writing), state.locale)}.`, `Writing gap to its minimum: ${formatBand(Math.max(0, view.source.targetSkills.writing - attempt.bands.writing), state.locale)}.`)}</p> : null}
           <p className="mt-2">{bi("پیشنهاد: فعالیت بازبینی خطا را در برنامه بالا ببرید. این توصیه قطعی نیست.", "Suggestion: move the error-review task up the plan. This advice is not certain.")}</p>
@@ -250,7 +246,10 @@ export function ProgressScreen() {
 export function ArchiveScreen() {
   const { bi, state, view } = useApp();
   const [skill, setSkill] = useState<Skill | "all">("all");
-  const attempts = [...state.exerciseAttempts, ...state.mockAttempts.map((item) => ({ id: item.id, skill: "listening" as Skill, at: item.at, correct: item.correct, total: item.total, exerciseId: item.mockId }))].filter((item) => skill === "all" || item.skill === skill);
+  const attempts = [
+    ...state.exerciseAttempts.map((item) => ({ id: item.id, skill: item.skill as Skill | "full", at: item.at, correct: item.correct, total: item.total, exerciseId: item.exerciseId })),
+    ...state.mockAttempts.map((item) => ({ id: item.id, skill: mockArchiveScope(item.mockId), at: item.at, correct: item.correct, total: item.total, exerciseId: item.mockId })),
+  ].filter((item) => skill === "all" || item.skill === skill || item.skill === "full");
   return (
     <div>
       <PageIntro title={bi("آرشیو پاسخ و خطا", "Answer and error archive")} lede={bi("پاسخ‌های ذخیره‌شده، بازخوردهای قاعده‌محور و خطاهای پرتکرار این مرورگر.", "Saved answers, rule-based feedback, and repeated errors from this browser.")} />
@@ -263,7 +262,7 @@ export function ArchiveScreen() {
           </article>
         ))}
         {attempts.length === 0 ? <EmptyBlock title={bi("آرشیو خالی است", "The archive is empty")} body={bi("اولین تمرین یا آزمونک این‌جا فهرست می‌شود.", "The first exercise or mock will be listed here.")} /> : attempts.map((item) => (
-          <p key={item.id} className="rounded-lg border px-3 py-2 text-sm">{formatDate(item.at, state.locale)} · {item.exerciseId} · {item.correct}/{item.total}</p>
+          <p key={item.id} className="rounded-lg border px-3 py-2 text-sm">{formatDate(item.at, state.locale)} · {item.skill === "full" ? bi("چهار مهارت", "All four skills") : skillLabel(item.skill, state.locale)} · {item.exerciseId} · {item.correct}/{item.total}</p>
         ))}
       </div>
     </div>

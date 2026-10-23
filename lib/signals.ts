@@ -142,7 +142,7 @@ export const FAQ: { q: Bi; a: Bi }[] = [
   },
   {
     q: { fa: "می‌توان نام محصول را عوض کرد؟", en: "Can the product name change?" },
-    a: { fa: "بله. IELTS Readiness نام موقت است و در متن رابط از یک ثابت استفاده شده است.", en: "Yes. IELTS Readiness is a temporary name, and the interface reads it from one constant." },
+    a: { fa: "بله. نام فعلی باندورا است و از lib/brand.ts خوانده می‌شود. باندورا وابسته به سازمان آیلتس نیست.", en: "Yes. The current name is Bandora and it is read from lib/brand.ts. Bandora is not affiliated with IELTS." },
   },
 ];
 

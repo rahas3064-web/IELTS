@@ -255,6 +255,41 @@ export type ObjectiveScore = {
   objectiveCorrect: { listening: number; reading: number; listeningTotal: number; readingTotal: number };
 };
 
+export function scoreMockPaper(input: {
+  scope: "full" | Skill;
+  itemIds: string[];
+  answers: Record<string, string>;
+  base: SkillBands;
+}) {
+  const items = input.itemIds.map((id) => bankItem(id));
+  const objective = items.filter((item) => item.kind !== "writing" && item.kind !== "speaking");
+  const correct = objective.filter((item) => answerIsCorrect(item.id, input.answers[item.id])).length;
+  const ratio = objective.length ? correct / objective.length : 0.5;
+  const bands: SkillBands = { ...input.base };
+  const nudge = (value: number) => roundBand(Math.min(8, Math.max(3, value + (ratio - 0.5))));
+  if (input.scope === "full" || input.scope === "listening") bands.listening = nudge(input.base.listening);
+  if (input.scope === "full" || input.scope === "reading") bands.reading = nudge(input.base.reading);
+  if (input.scope === "writing") {
+    const writing = items.filter((item) => item.kind === "writing");
+    const first = writing[0] ? input.answers[writing[0].id] ?? "" : "";
+    const second = writing[1] ? input.answers[writing[1].id] ?? "" : "";
+    bands.writing = assessWriting(writing.length > 1 ? first : "", writing.length > 1 ? second : first).band;
+  }
+  if (input.scope === "speaking") {
+    bands.speaking = assessSpeaking(items.filter((item) => item.kind === "speaking").map((item) => input.answers[item.id] ?? "")).band;
+  }
+  return {
+    bands: {
+      listening: roundBand(bands.listening),
+      reading: roundBand(bands.reading),
+      writing: roundBand(bands.writing),
+      speaking: roundBand(bands.speaking),
+    },
+    correct,
+    total: objective.length,
+  };
+}
+
 export function scorePlacement(placement: PlacementState): ObjectiveScore | null {
   const done = SKILLS.every((skill) => placement.done[skill]);
   if (!done) return null;
