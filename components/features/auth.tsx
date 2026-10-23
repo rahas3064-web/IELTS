@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import Link from "@/components/link";
+import { useRouter, useSearchParams } from "@/lib/navigation";
 import { useState, type FormEvent } from "react";
 import { PublicHeader } from "@/components/shell/public-header";
 import { Callout, Field, inputClass } from "@/components/product/bits";

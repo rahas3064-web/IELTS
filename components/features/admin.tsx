@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/link";
 import { useMemo, useState, type ReactNode } from "react";
 import { PageIntro, StateBadge } from "@/components/product/bits";
 import { Button } from "@/components/ui/button";

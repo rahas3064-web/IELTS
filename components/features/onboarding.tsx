@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/navigation";
 import { PageIntro, Field, inputClass, Callout } from "@/components/product/bits";
 import { Button } from "@/components/ui/button";
 import { formatBand } from "@/lib/format";

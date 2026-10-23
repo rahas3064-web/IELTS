@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/link";
 import { useTheme } from "next-themes";
 import { Moon, Sun } from "lucide-react";
 import { BrandLockup } from "@/components/product/bits";

@@ -1,9 +1,5 @@
-<!-- BEGIN:nextjs-agent-rules -->
+# آمادگی آیلتس
 
-## This is NOT the Next.js you know
+پروتوتایپ کلاینت است. `server.js` یک سرور Express است که رابط React را سرو می‌کند. در توسعه Vite به‌صورت middleware داخل همان فرآیند است و در تولید فایل‌های `dist/` با بازگشت SPA سرو می‌شوند. پورت 38471 است.
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
-
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
-
-<!-- END:nextjs-agent-rules -->
+مسیرها در `src/routes.tsx` با react-router تعریف شده‌اند. قاب بعد از ورود `components/shell/app-shell.tsx` است و فرزند مسیر را با `Outlet` نشان می‌دهد. سبک‌ها در `app/globals.css` هستند. نمره در `lib/model.ts` روی کلاینت حساب می‌شود و وضعیت در localStorage می‌ماند. این سرور API، نشست واقعی یا پرداخت ندارد.

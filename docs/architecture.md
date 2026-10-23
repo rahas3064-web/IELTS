@@ -2,14 +2,14 @@
 
 ## انتخاب پروتوتایپ
 
-رابط با Next.js، React و TypeScript ساخته شده چون محصول سطح وب دارد و باید در همین محیط اجرا شود. این انتخاب برای نسخه نمایشی قطعی محصول نهایی نیست.
+رابط با React، TypeScript و Vite ساخته شده و `server.js` همان فرآیند Express است که آن را سرو می‌کند. در توسعه Vite به‌صورت middleware است و در تولید `dist/` با بازگشت SPA سرو می‌شود. مسیرها در مرورگر با react-router هستند. این سرور API، نشست یا پرداخت ندارد و نمره در `lib/model.ts` روی کلاینت می‌ماند. این انتخاب برای نسخه نمایشی قطعی محصول نهایی نیست.
 
 ## پیشنهاد نسخه واقعی
 
 | لایه | پیشنهاد | جایگزین | چرا پیشنهاد |
 | --- | --- | --- | --- |
-| Frontend | همین App Router | Vite جدا اگر تیم بخواهد API را کاملاً جدا کند | مسیرها و RTL همین حالا این‌جا هستند |
-| Backend | سرویس HTTP جدا، مثلاً روی Node یا هر زبان تیم | Route Handler فقط برای MVP خیلی کوچک | نمره، صوت و صف باید از رابط جدا باشند |
+| Frontend | همین کلاینت React با Vite و react-router | جدا کردن API وقتی تیم بخواهد | مسیرها و RTL همین حالا این‌جا هستند |
+| Backend | سرویس HTTP جدا، مثلاً روی Node یا هر زبان تیم | مسیرهای کوچک فقط برای یک MVP خیلی محدود | نمره، صوت و صف باید از رابط جدا باشند. Express امروز فقط فایل کلاینت را سرو می‌کند |
 | Database | Postgres | SQLite فقط برای توسعه محلی | رابطه سؤال، تلاش و نسخه لازم است |
 | Auth | نشست httpOnly یا استاندارد تیمی | رمز خانگی | پروتوتایپ عمداً رمز ندارد |
 | State | سرور منبع حقیقت؛ کلاینت پیش‌نویس آزمون | فقط localStorage | چند دستگاه و حذف حساب |
@@ -28,7 +28,7 @@
 
 ## پوشه‌های فعلی
 
-`app/` مسیرها، `components/ui` پایه، `components/features` صفحه‌ها، `components/shell` قاب، `lib/model.ts` محاسبه، `lib/questions.ts` بانک، `lib/scenarios.ts` سه پرسونا، `docs/` قرارداد.
+`server.js` فرآیند Express، `index.html` و `src/main.tsx` ورود کلاینت، `src/routes.tsx` مسیرها، `app/globals.css` سبک، `components/ui` پایه، `components/features` صفحه‌ها، `components/shell` قاب، `lib/model.ts` محاسبه، `lib/questions.ts` بانک، `lib/scenarios.ts` سه پرسونا، `docs/` قرارداد.
 
 ## پوشه‌های پیشنهادی بعدی
 

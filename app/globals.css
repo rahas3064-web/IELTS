@@ -53,6 +53,8 @@
 }
 
 :root {
+  --font-vazir: Vazirmatn;
+  --font-literata: Literata;
   --background: oklch(0.982 0.012 300);
   --foreground: oklch(0.25 0.04 285);
   --card: oklch(0.995 0.004 300);
@@ -132,10 +134,10 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply min-h-full bg-background text-foreground antialiased;
   }
   html {
-    @apply font-sans;
+    @apply h-full font-sans;
   }
   :focus-visible {
     outline: 2px solid var(--ring);

@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/link";
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/lib/navigation";
 import { Callout, EmptyBlock, PageIntro, skillLabel } from "@/components/product/bits";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { answerIsCorrect, overallBand } from "@/lib/model";

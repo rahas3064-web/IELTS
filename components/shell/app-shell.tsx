@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { Outlet } from "react-router-dom";
+import Link from "@/components/link";
+import { usePathname, useRouter } from "@/lib/navigation";
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import {
@@ -85,7 +86,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell() {
   const pathname = usePathname();
   const router = useRouter();
   const { ready, state, view, bi, setLocale, setConnection, signOut } = useApp();
@@ -174,7 +175,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           ) : null}
           <main id="content" className="mx-auto w-full max-w-6xl px-4 py-6 pb-28 lg:pb-10">
-            {children}
+            <Outlet />
           </main>
         </div>
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/link";
 import { Callout, EmptyBlock, PageIntro, ReadinessFigure, SkillBoard, TrendChart, skillLabel } from "@/components/product/bits";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { coverageBySkill, buildPlan } from "@/lib/model";
