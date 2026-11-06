@@ -175,6 +175,178 @@ html[data-motion="reduce"] *::after {
     var(--background);
 }
 
+/* Public landing only. Tokens stay on this subtree so the rest of the app is unchanged. */
+.landing {
+  --background: #f6f1e7;
+  --foreground: #1a2836;
+  --heading: #122033;
+  --card: #fffdf8;
+  --card-foreground: #1a2836;
+  --popover: #fffdf8;
+  --popover-foreground: #1a2836;
+  --primary: #0b5f58;
+  --primary-foreground: #ffffff;
+  --secondary: #efe4d2;
+  --secondary-foreground: #122033;
+  --muted: #efe6d6;
+  --muted-foreground: #4a5b6c;
+  --accent: #c56a2d;
+  --accent-foreground: #1b140c;
+  --border: #e4d5bf;
+  --input: #e4d5bf;
+  --ring: #0b5f58;
+  --highlight: #c56a2d;
+  color: var(--foreground);
+  background-color: #f3ecdf;
+  background-image:
+    radial-gradient(820px 420px at 100% -8%, color-mix(in oklab, #0b5f58 13%, transparent), transparent 64%),
+    radial-gradient(640px 380px at 0% 12%, color-mix(in oklab, #c56a2d 11%, transparent), transparent 62%);
+}
+
+.dark .landing {
+  --background: #101820;
+  --foreground: #f4efe6;
+  --heading: #f7f3ea;
+  --card: #182430;
+  --card-foreground: #f4efe6;
+  --popover: #182430;
+  --popover-foreground: #f4efe6;
+  --primary: #5ee0d2;
+  --primary-foreground: #06221f;
+  --secondary: #1c2c3c;
+  --secondary-foreground: #f4efe6;
+  --muted: #1c2c3c;
+  --muted-foreground: #c5d0db;
+  --accent: #e0a15a;
+  --accent-foreground: #1b140c;
+  --border: #314556;
+  --input: #314556;
+  --ring: #5ee0d2;
+  --highlight: #e0a15a;
+  background-color: #101820;
+  background-image:
+    radial-gradient(820px 420px at 100% -8%, color-mix(in oklab, #5ee0d2 16%, transparent), transparent 64%),
+    radial-gradient(640px 380px at 0% 12%, color-mix(in oklab, #e0a15a 10%, transparent), transparent 62%);
+}
+
+.landing-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: color-mix(in oklab, var(--background) 88%, transparent);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
+}
+
+.landing-header::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: -2px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--primary), var(--highlight));
+}
+
+.landing :is(#method, #sample, #courses, #stories, #faq) {
+  scroll-margin-top: 5.5rem;
+}
+
+.landing-hero-visual {
+  position: relative;
+}
+
+.landing-hero-visual::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset-inline-start: 0.75rem;
+  inset-block-start: 0.85rem;
+  width: calc(100% - 0.75rem);
+  height: calc(100% - 0.85rem);
+  border-radius: 1rem;
+  background: color-mix(in oklab, var(--primary) 14%, var(--muted));
+}
+
+.landing-hero-visual > * {
+  position: relative;
+  z-index: 1;
+}
+
+.landing-band {
+  background: #14283f;
+  color: #f7f3ea;
+}
+
+.dark .landing-band {
+  background: #1a3044;
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--primary) 35%, var(--border));
+}
+
+.landing-band :is(h2, p) {
+  color: inherit;
+}
+
+.landing-band-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  border-radius: 0.7rem;
+  background: #f6f1e7;
+  color: #122033;
+  padding-inline: 1.1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.landing-band-link:hover {
+  background: #fffdf8;
+}
+
+.landing-step-index {
+  font-family: var(--font-serif);
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--primary);
+}
+
+.landing-story,
+.landing-course {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  transition: border-color 160ms ease;
+}
+
+.landing-story:hover,
+.landing-course:hover {
+  border-color: color-mix(in oklab, var(--primary) 45%, var(--border));
+}
+
+@keyframes landing-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-motion="reduce"]) .landing-rise {
+    animation: landing-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-rise {
+    animation: none;
+  }
+}
+
 @media print {
   body * { visibility: hidden; }
   .print-root, .print-root * { visibility: visible; }
