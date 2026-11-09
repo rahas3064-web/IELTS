@@ -1,0 +1,128 @@
+html:has(.bandora-landing) {
+  scroll-behavior: smooth;
+}
+
+body:has(.bandora-landing) {
+  background: #F6F1E7;
+  overflow-x: hidden;
+}
+
+.bandora-landing {
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
+}
+
+.bandora-landing ::selection {
+  background: #E4D3AC;
+}
+
+.bandora-landing :focus-visible {
+  outline: 2px solid #B08D4A;
+  outline-offset: 2px;
+}
+
+.bandora-landing a {
+  color: #7A5C1E;
+  text-decoration: none;
+}
+
+.bandora-landing a:hover {
+  color: #1F2E54;
+}
+
+.bandora-landing svg {
+  display: inline;
+  max-width: none;
+}
+
+.bandora-landing > section {
+  scroll-margin-top: 68px;
+}
+
+.bandora-landing a.bd-nav {
+  color: #1A2238;
+}
+
+.bandora-landing a.bd-nav:hover {
+  color: #7A5C1E;
+}
+
+.bandora-landing a.bd-footer-link {
+  color: #4A5168;
+}
+
+.bandora-landing a.bd-footer-link:hover {
+  color: #7A5C1E;
+}
+
+.bandora-landing a.bd-solid,
+.bandora-landing a.bd-solid-lift,
+.bandora-landing a.bd-outline,
+.bandora-landing a.bd-outline-lift,
+.bandora-landing a.bd-cream {
+  transition: all .25s;
+}
+
+.bandora-landing a.bd-solid,
+.bandora-landing a.bd-solid-lift {
+  background: #1F2E54;
+  color: #F6F1E7;
+}
+
+.bandora-landing a.bd-solid:hover,
+.bandora-landing a.bd-solid-lift:hover {
+  background: #2C4073;
+  color: #F6F1E7;
+}
+
+.bandora-landing a.bd-solid-lift:hover,
+.bandora-landing a.bd-outline-lift:hover,
+.bandora-landing a.bd-cream:hover {
+  transform: translateY(-1px);
+}
+
+.bandora-landing a.bd-outline,
+.bandora-landing a.bd-outline-lift {
+  border: 1px solid #1F2E54;
+  color: #1F2E54;
+}
+
+.bandora-landing a.bd-outline:hover,
+.bandora-landing a.bd-outline-lift:hover {
+  background: #EBE3D0;
+  color: #1F2E54;
+}
+
+.bandora-landing a.bd-cream {
+  background: #F6F1E7;
+  color: #1F2E54;
+}
+
+.bandora-landing a.bd-cream:hover {
+  background: #fff;
+  color: #1F2E54;
+}
+
+.bandora-landing article.bd-feature {
+  border: 1px solid #D9CFBB;
+  border-radius: 6px;
+  background: #FBF8F1;
+  padding: 36px;
+  transition: all .3s;
+}
+
+.bandora-landing article.bd-feature:hover {
+  border-color: #B08D4A;
+  transform: translateY(-3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:has(.bandora-landing) {
+    scroll-behavior: auto;
+  }
+
+  .bandora-landing,
+  .bandora-landing * {
+    transition: none !important;
+  }
+}
