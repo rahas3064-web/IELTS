@@ -54,7 +54,9 @@ export const ENV_SPEC = Object.freeze([
   v("STORAGE_ACCESS_KEY", { secret: true }),
   v("STORAGE_SECRET_KEY", { secret: true }),
   // Admin bootstrap
-  v("ADMIN_BOOTSTRAP_PHONE"),
+  v("ADMIN_BOOTSTRAP_PHONE", { secret: true }),
+  // Scheduled jobs always run in production; set 1 to run them in development too
+  v("ENABLE_JOBS"),
 ]);
 
 const MIN_SECRET_LENGTH = 32;
@@ -110,6 +112,10 @@ export function validateEnv(env = {}) {
   config.NODE_ENV = nodeEnv;
 
   if (production) {
+    // The dev console sender prints OTP codes; it must never be active in production.
+    if (config.SMS_DEV_CONSOLE === true) {
+      errors.push("SMS_DEV_CONSOLE must not be true in production (it prints OTP codes to the logs)");
+    }
     for (const name of ["SESSION_SECRET", "OTP_PEPPER"]) {
       if (config[name] !== undefined && config[name].length < MIN_SECRET_LENGTH) {
         errors.push(`${name} must be at least ${MIN_SECRET_LENGTH} characters`);

@@ -97,6 +97,19 @@ describe("validateEnv (production)", () => {
     expect(res.errors.some((e) => e.includes("OTP_PEPPER"))).toBe(true);
   });
 
+  it("rejects SMS_DEV_CONSOLE=true in production (it would print OTP codes to the logs)", () => {
+    const result = validateEnv({ ...prodEnv, SMS_DEV_CONSOLE: "true" });
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(" ")).toMatch(/SMS_DEV_CONSOLE/);
+    expect(validateEnv({ ...prodEnv, SMS_DEV_CONSOLE: "false" }).ok).toBe(true);
+    expect(validateEnv({ SMS_DEV_CONSOLE: "true" }).ok).toBe(true);
+  });
+
+  it("treats ADMIN_BOOTSTRAP_PHONE as a secret in redactEnv", () => {
+    const out = redactEnv({ ADMIN_BOOTSTRAP_PHONE: "09123456789" });
+    expect(out.ADMIN_BOOTSTRAP_PHONE).toBe("***");
+  });
+
   it("defaults SMS_DEV_CONSOLE to false so OTPs are never printed in production", () => {
     expect(validateEnv(prodEnv).config.SMS_DEV_CONSOLE).toBe(false);
   });

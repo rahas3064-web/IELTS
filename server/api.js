@@ -3,7 +3,9 @@ import { createAuthContext } from "./auth/context.js";
 import { errorHandler, notFoundHandler } from "./core/errors.js";
 import { accountRoutes } from "./routes/account.js";
 import { authRoutes } from "./routes/auth.js";
+import { frameRoutes } from "./routes/frame.js";
 import { meRoutes } from "./routes/me.js";
+import { notificationRoutes } from "./routes/notifications.js";
 import { onboardingRoutes } from "./routes/onboarding.js";
 
 /**
@@ -27,6 +29,8 @@ export function createApi(db, options = {}) {
   router.use("/api/account", accountRoutes(auth));
   router.use("/api", meRoutes(auth));
   router.use("/api", onboardingRoutes(auth));
+  router.use("/api", frameRoutes(auth));
+  router.use("/api", notificationRoutes(auth));
 
   router.use("/api", notFoundHandler);
   router.use(errorHandler());

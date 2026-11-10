@@ -130,3 +130,51 @@ describe("production live mode", () => {
     expect((await rows())[0].error).toBe("not_configured");
   });
 });
+
+describe("sendTemplate (non-OTP templates)", () => {
+  const live = { ...PROD_ENV, SMS_DEV_CONSOLE: false, SMSIR_TEMPLATE_STUDY_REMINDER: "777" };
+
+  it("dev console prints a masked line without any code", async () => {
+    const logger = makeLogger();
+    const sender = createSmsSender({ env: { NODE_ENV: "development" }, db, fetchImpl: vi.fn(), logger });
+    const result = await sender.sendTemplate("09121234567", "study_reminder", {});
+    expect(result.mode).toBe("console");
+    expect(logger.info).toHaveBeenCalledWith("[dev-sms] 0912***4567 template=study_reminder");
+    expect(JSON.stringify(logger.info.mock.calls)).not.toContain("code=");
+  });
+
+  it("logs a row by default and skips the log when the caller owns the row", async () => {
+    const sender = createSmsSender({ env: { NODE_ENV: "development" }, db, logger: makeLogger() });
+    await sender.sendTemplate("09121234567", "study_reminder", {});
+    expect((await rows()).map((r) => r.purpose)).toEqual(["study_reminder"]);
+    await db.query("delete from sms_messages");
+    await sender.sendTemplate("09121234567", "study_reminder", {}, { log: false });
+    expect(await rows()).toEqual([]);
+  });
+
+  it("calls SMS.ir with the template id of the key and the given parameters", async () => {
+    const fetchImpl = vi.fn(async () => jsonResponse(200, { status: 1, data: { messageId: 9 } }));
+    const sender = createSmsSender({ env: live, db, fetchImpl, logger: makeLogger() });
+    const result = await sender.sendTemplate("09121234567", "study_reminder", { NAME: "Sara" }, { log: false });
+    expect(result).toEqual({ providerMessageId: "9", mode: "live" });
+    expect(JSON.parse(fetchImpl.mock.calls[0][1].body)).toEqual({
+      mobile: "09121234567",
+      templateId: 777,
+      parameters: [{ name: "NAME", value: "Sara" }],
+    });
+  });
+
+  it("a failed send throws sms_failed and, with log:false, writes no row", async () => {
+    const fetchImpl = vi.fn(async () => jsonResponse(401, {}));
+    const sender = createSmsSender({ env: live, db, fetchImpl, logger: makeLogger(), sleep: async () => {} });
+    await expect(sender.sendTemplate("09121234567", "study_reminder", {}, { log: false })).rejects.toMatchObject({ code: "sms_failed" });
+    expect(await rows()).toEqual([]);
+  });
+
+  it("rejects unknown template keys and keeps sendVerify working as the OTP entry point", async () => {
+    const sender = createSmsSender({ env: { NODE_ENV: "development" }, db, logger: makeLogger() });
+    await expect(sender.sendTemplate("09121234567", "nope", {})).rejects.toThrow(TypeError);
+    await sender.sendVerify("09121234567", "otp", { CODE: "12345" });
+    expect((await rows()).map((r) => r.purpose)).toEqual(["otp"]);
+  });
+});

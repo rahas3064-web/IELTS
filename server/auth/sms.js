@@ -105,31 +105,42 @@ export function createSmsSender({ env, db, fetchImpl = globalThis.fetch, logger 
     throw last;
   }
 
+  /**
+   * @param {string} phone canonical 09xxxxxxxxx
+   * @param {'otp'|'study_reminder'|'renewal_reminder'} templateKey
+   * @param {Record<string, string|number>} params template parameters, e.g. {CODE}
+   * @param {{log?: boolean}} [options] log:false when the caller owns the sms_messages row
+   *   (e.g. the study-reminder job, whose row carries the one-per-day guarantee)
+   * @returns {Promise<{providerMessageId: string|null, mode: 'console'|'live'}>}
+   */
+  async function sendTemplate(phone, templateKey, params, { log = true } = {}) {
+    if (!Object.hasOwn(TEMPLATE_ENV, templateKey)) throw new TypeError("unknown SMS template key");
+    const write = (fields) => (log ? record({ phone, templateKey, ...fields }) : Promise.resolve());
+    if (consoleMode) {
+      // The only place a code is ever logged, and only outside live production sends.
+      logger.info(
+        templateKey === "otp"
+          ? `[dev-sms] ${maskPhone(phone)} code=${params.CODE ?? ""}`
+          : `[dev-sms] ${maskPhone(phone)} template=${templateKey}`,
+      );
+      await write({ status: "sent", providerMessageId: "dev-console" });
+      return { providerMessageId: "dev-console", mode: "console" };
+    }
+    try {
+      const providerMessageId = await sendLive(phone, templateKey, params);
+      await write({ status: "sent", providerMessageId });
+      return { providerMessageId, mode: "live" };
+    } catch (error) {
+      const reason = error instanceof AttemptFailed ? error.reason : "unexpected";
+      await write({ status: "failed", error: reason });
+      logger.warn(`[sms] send failed (${templateKey}): ${reason}`);
+      throw new ApiError(502, "sms_failed");
+    }
+  }
+
   return {
-    /**
-     * @param {string} phone canonical 09xxxxxxxxx
-     * @param {'otp'|'study_reminder'|'renewal_reminder'} templateKey
-     * @param {Record<string, string|number>} params template parameters, e.g. {CODE}
-     * @returns {Promise<{providerMessageId: string|null, mode: 'console'|'live'}>}
-     */
-    async sendVerify(phone, templateKey, params) {
-      if (!Object.hasOwn(TEMPLATE_ENV, templateKey)) throw new TypeError("unknown SMS template key");
-      if (consoleMode) {
-        // The only place a code is ever logged, and only outside live production sends.
-        logger.info(`[dev-sms] ${maskPhone(phone)} code=${params.CODE ?? ""}`);
-        await record({ phone, templateKey, status: "sent", providerMessageId: "dev-console" });
-        return { providerMessageId: "dev-console", mode: "console" };
-      }
-      try {
-        const providerMessageId = await sendLive(phone, templateKey, params);
-        await record({ phone, templateKey, status: "sent", providerMessageId });
-        return { providerMessageId, mode: "live" };
-      } catch (error) {
-        const reason = error instanceof AttemptFailed ? error.reason : "unexpected";
-        await record({ phone, templateKey, status: "failed", error: reason });
-        logger.warn(`[sms] send failed (${templateKey}): ${reason}`);
-        throw new ApiError(502, "sms_failed");
-      }
-    },
+    sendTemplate,
+    /** OTP entry point (and the contract the auth code and its test doubles rely on). */
+    sendVerify: (phone, templateKey, params) => sendTemplate(phone, templateKey, params),
   };
 }

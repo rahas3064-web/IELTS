@@ -90,6 +90,16 @@ export function addDays(day, n) {
 }
 
 /**
+ * Signed whole-day difference between two Tehran days (later minus earlier).
+ * @param {string} from 'YYYY-MM-DD'
+ * @param {string} to 'YYYY-MM-DD'
+ * @returns {number}
+ */
+export function daysBetween(from, to) {
+  return Math.round((dayToEpoch(to) - dayToEpoch(from)) / MS_PER_DAY);
+}
+
+/**
  * 0 = Saturday ... 6 = Friday (Iranian week).
  * @param {string} day 'YYYY-MM-DD'
  * @returns {number}

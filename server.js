@@ -85,10 +85,24 @@ const server = app.listen(port, host, () => {
   console.log(`Bandora listening on http://localhost:${port}`);
 });
 
+// Scheduled jobs (spec 4.2): production, or locally with ENABLE_JOBS=1. The runner takes an
+// advisory lock per job, so several instances never run the same job twice.
+let jobs = null;
+const { registerJobs, shouldStartJobs } = await import("./server/jobs/register.js");
+if (shouldStartJobs(config)) {
+  const { createJobRunner } = await import("./server/core/jobs.js");
+  const { createSmsSender } = await import("./server/auth/sms.js");
+  jobs = createJobRunner({ db });
+  registerJobs(jobs, { sms: createSmsSender({ env: config, db }) });
+  jobs.start();
+  console.info(`jobs started: ${jobs.list().map((job) => job.name).join(", ")}`);
+}
+
 let stopping = false;
 async function shutdown() {
   if (stopping) return;
   stopping = true;
+  jobs?.stop();
   server.close();
   await db.close().catch(() => {});
   process.exit(0);

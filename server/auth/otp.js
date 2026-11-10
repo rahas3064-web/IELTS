@@ -133,25 +133,26 @@ export function createOtpService({ db, pepper, sms, now = () => new Date() }) {
       if (!current) throw invalidCode();
 
       if (!safeEqualHex(hashCode(code), current.code_hash)) {
-        const bumped = await db.query(
-          "update otp_codes set attempts = attempts + 1 where id = $1 returning attempts",
-          [current.id],
-        );
-        const attempts = Number(bumped.rows[0]?.attempts ?? settings.maxAttempts);
-        if (attempts >= settings.maxAttempts) {
+        // Bump, lock and kill the code in ONE transaction so "attempts >= max" can never exist without a lock.
+        const outcome = await db.transaction(async (tx) => {
+          const bumped = await tx.query(
+            "update otp_codes set attempts = attempts + 1 where id = $1 returning attempts",
+            [current.id],
+          );
+          const attempts = Number(bumped.rows[0]?.attempts ?? settings.maxAttempts);
+          if (attempts < settings.maxAttempts) return { attempts, until: null };
           const until = new Date(at.getTime() + settings.lockMinutes * 60_000);
-          await db.transaction(async (tx) => {
-            await tx.query(
-              `insert into otp_locks (phone, purpose, locked_until) values ($1, $2, $3)
-               on conflict (phone, purpose) do update set locked_until = excluded.locked_until`,
-              [phone, purpose, until],
-            );
-            // Kill the attacked code (expired, not consumed: it must not count as a verification).
-            await tx.query("update otp_codes set expires_at = $2 where id = $1 and expires_at > $2", [current.id, at]);
-          });
-          throw lockedError(until, at);
-        }
-        throw invalidCode(settings.maxAttempts - attempts);
+          await tx.query(
+            `insert into otp_locks (phone, purpose, locked_until) values ($1, $2, $3)
+             on conflict (phone, purpose) do update set locked_until = excluded.locked_until`,
+            [phone, purpose, until],
+          );
+          // Kill the attacked code (expired, not consumed: it must not count as a verification).
+          await tx.query("update otp_codes set expires_at = $2 where id = $1 and expires_at > $2", [current.id, at]);
+          return { attempts, until };
+        });
+        if (outcome.until) throw lockedError(outcome.until, at);
+        throw invalidCode(settings.maxAttempts - outcome.attempts);
       }
 
       const consumed = await db.query(
