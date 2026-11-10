@@ -9,7 +9,10 @@
     "start": "NODE_ENV=production node server.js",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:migrate": "node server/migrate-cli.js",
+    "db:seed": "node server/seed-cli.js",
+    "db:seed:dev": "node server/seed-dev-cli.js"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

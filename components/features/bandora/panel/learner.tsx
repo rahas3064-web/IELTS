@@ -1,5 +1,4 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { emptyLearner } from "../../../../server/learner.js";
 
 export type LearnerTask = { id: string; title: string; minutes: number; done: boolean };
 export type LearnerSkills = { listening: number | null; reading: number | null; writing: number | null; speaking: number | null };
@@ -12,6 +11,18 @@ export type Learner = {
   tasks: LearnerTask[];
   skills: LearnerSkills;
 };
+
+function emptyLearner(): Learner {
+  return {
+    name: "",
+    focus: "",
+    cefr: "",
+    band: null,
+    target: null,
+    tasks: [],
+    skills: { listening: null, reading: null, writing: null, speaking: null },
+  };
+}
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
