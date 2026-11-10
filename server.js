@@ -33,6 +33,12 @@ try {
   throw error;
 }
 
+if (!isProd) {
+  for (const name of ["SESSION_SECRET", "OTP_PEPPER"]) {
+    if (!config[name]) console.warn(`[env] ${name} is not set: using a random per-process value (sessions reset on restart)`);
+  }
+}
+
 const app = express();
 app.disable("x-powered-by");
 if (isProd) app.set("trust proxy", 1);
@@ -51,7 +57,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(createApi(db));
+app.use(createApi(db, { config }));
 
 if (isProd) {
   const dist = path.join(root, "dist");

@@ -52,6 +52,16 @@ export const CODES = Object.freeze({
     fa: "به‌خاطر تلاش‌های ناموفق زیاد، ورود با کد موقتاً قفل شده. بعداً دوباره امتحان کن.",
     en: "Too many failed attempts. Code sign-in is temporarily locked. Try again later.",
   },
+  conflict: {
+    status: 409,
+    fa: "این مورد قبلاً ثبت شده و تکراریه.",
+    en: "This already exists.",
+  },
+  sms_failed: {
+    status: 502,
+    fa: "ارسال پیامک الان ممکن نیست. کمی بعد دوباره امتحان کن.",
+    en: "We couldn't send the SMS right now. Please try again shortly.",
+  },
   scoring_failed: {
     status: 502,
     fa: "تصحیح هوشمند الان در دسترس نیست. نمره‌ای ثبت نشد؛ کمی بعد دوباره امتحان کن.",

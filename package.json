@@ -12,7 +12,8 @@
     "test": "vitest run",
     "db:migrate": "node server/migrate-cli.js",
     "db:seed": "node server/seed-cli.js",
-    "db:seed:dev": "node server/seed-dev-cli.js"
+    "db:seed:dev": "node server/seed-dev-cli.js",
+    "admin:bootstrap": "node server/admin-bootstrap.js"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

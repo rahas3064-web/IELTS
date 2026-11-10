@@ -31,6 +31,15 @@ describe("CODES", () => {
     }
   });
 
+  it("has the conflict and sms_failed codes used by the auth flow", () => {
+    expect(CODES.conflict.status).toBe(409);
+    expect(CODES.sms_failed.status).toBe(502);
+    for (const code of ["conflict", "sms_failed"]) {
+      expect(CODES[code].fa).toMatch(/\S/);
+      expect(CODES[code].en).toMatch(/\S/);
+    }
+  });
+
   it("uses the exact Persian session_replaced message", () => {
     expect(CODES.session_replaced.fa).toBe(
       "با یه دستگاه دیگه وارد حسابت شدی، برای همین از این دستگاه خارج شدی. اگه خودت نبودی، دوباره وارد شو.",

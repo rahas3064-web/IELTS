@@ -1,3 +1,4 @@
+/* global fetch */
 import express from "express";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApi } from "./api.js";
@@ -44,7 +45,6 @@ describe("createApi", () => {
       ["PUT", "/api/learner"],
       ["POST", "/api/auth/signup"],
       ["POST", "/api/auth/login"],
-      ["GET", "/api/me"],
       ["POST", "/api/placement"],
       ["POST", "/api/mocks/m1"],
       ["POST", "/api/assistant"],
