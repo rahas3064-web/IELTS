@@ -8,9 +8,8 @@ import "@fontsource/vazirmatn/400.css";
 import "@fontsource/vazirmatn/500.css";
 import "@fontsource/vazirmatn/600.css";
 import "@fontsource/vazirmatn/700.css";
-import "@fontsource/literata/400.css";
-import "@fontsource/literata/600.css";
-import "@fontsource/literata/700.css";
+import "@fontsource/newsreader/latin-400.css";
+import "@fontsource/newsreader/latin-600.css";
 import "@/app/globals.css";
 
 const root = document.getElementById("root");

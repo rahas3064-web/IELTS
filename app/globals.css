@@ -10,7 +10,7 @@
   --font-sans: var(--font-vazir), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
   --font-heading: var(--font-vazir), ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-literata), Georgia, serif;
+  --font-serif: var(--font-newsreader), Georgia, serif;
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-info: var(--info);
@@ -54,84 +54,92 @@
 
 :root {
   --font-vazir: Vazirmatn;
-  --font-literata: Literata;
-  --background: #ffffff;
-  --foreground: #172435;
-  --heading: #142b4a;
-  --card: #ffffff;
-  --card-foreground: #172435;
-  --popover: #ffffff;
-  --popover-foreground: #172435;
-  /* #20A99A fails white-text contrast, so actions use a darker teal in the same family. */
-  --primary: #0c6e66;
-  --primary-foreground: #ffffff;
-  --secondary: #e9eff5;
-  --secondary-foreground: #142b4a;
-  --muted: #e9eff5;
-  --muted-foreground: #64748b;
-  --accent: #20a99a;
-  --accent-foreground: #142b4a;
-  --highlight: #f2b96d;
-  --destructive: #b42318;
-  --border: #d8e1ea;
-  --input: #d8e1ea;
-  --ring: #0c6e66;
-  --chart-1: #0c6e66;
-  --chart-2: #142b4a;
-  --chart-3: #1d4e89;
-  --chart-4: #92400e;
-  --chart-5: #64748b;
-  --radius: 0.8rem;
-  --sidebar: #e9eff5;
-  --sidebar-foreground: #142b4a;
-  --sidebar-primary: #0c6e66;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #ffffff;
-  --sidebar-accent-foreground: #142b4a;
-  --sidebar-border: #d8e1ea;
-  --sidebar-ring: #0c6e66;
+  --font-newsreader: Newsreader;
+  --background: #F4EFE6;
+  --foreground: #1A2332;
+  --heading: #1A2332;
+  --card: #FBF8F3;
+  --card-foreground: #1A2332;
+  --popover: #FBF8F3;
+  --popover-foreground: #1A2332;
+  /* Ink on ivory is 13.8:1. Ivory label on the ink button is the same pair. */
+  --primary: #1A2332;
+  --primary-foreground: #F4EFE6;
+  --secondary: #E7DFD2;
+  --secondary-foreground: #1A2332;
+  --muted: #E7DFD2;
+  /* #6B645C is 4.4:1 on beige, so secondary text steps to #5C564E (5.5:1). */
+  --muted-foreground: #5C564E;
+  /* Sage is the accent, not a page fill. Ivory on sage is 6.4:1. */
+  --accent: #3F5C4B;
+  --accent-foreground: #F4EFE6;
+  --highlight: #3F5C4B;
+  --glow: #C4B59A;
+  --destructive: #B42318;
+  /* Hairline is 2.0:1 on ivory and 2.1:1 on paper, so edges stay visible. */
+  --border: #B7AA98;
+  --input: #B7AA98;
+  --ring: #3F5C4B;
+  --chart-1: #1A2332;
+  --chart-2: #3F5C4B;
+  --chart-3: #5C564E;
+  --chart-4: #8C5A3C;
+  --chart-5: #A89884;
+  --radius: 0.5rem;
+  --sidebar: #E7DFD2;
+  --sidebar-foreground: #1A2332;
+  --sidebar-primary: #1A2332;
+  --sidebar-primary-foreground: #F4EFE6;
+  --sidebar-accent: #FBF8F3;
+  --sidebar-accent-foreground: #1A2332;
+  --sidebar-border: #B7AA98;
+  --sidebar-ring: #3F5C4B;
   --success: #166534;
-  --warning: #92400e;
-  --info: #1e40af;
+  --warning: #92400E;
+  --info: #3F5C4B;
 }
 
 .dark {
-  --background: #0f1c2e;
-  --foreground: #f4f7fb;
-  --heading: #f4f7fb;
-  --card: #162536;
-  --card-foreground: #f4f7fb;
-  --popover: #162536;
-  --popover-foreground: #f4f7fb;
-  --primary: #2bb8a8;
-  --primary-foreground: #142b4a;
-  --secondary: #1c3048;
-  --secondary-foreground: #f4f7fb;
-  --muted: #1c3048;
-  --muted-foreground: #b7c3d1;
-  --accent: #20a99a;
-  --accent-foreground: #142b4a;
-  --highlight: #f2b96d;
-  --destructive: #f0a8a2;
-  --border: #2c425c;
-  --input: #2c425c;
-  --ring: #2bb8a8;
-  --chart-1: #2bb8a8;
-  --chart-2: #d5dee8;
-  --chart-3: #93c5fd;
-  --chart-4: #f2b96d;
-  --chart-5: #b7c3d1;
-  --sidebar: #142b4a;
-  --sidebar-foreground: #f4f7fb;
-  --sidebar-primary: #2bb8a8;
-  --sidebar-primary-foreground: #142b4a;
-  --sidebar-accent: #1c3048;
-  --sidebar-accent-foreground: #f4f7fb;
-  --sidebar-border: #2c425c;
-  --sidebar-ring: #2bb8a8;
-  --success: #86efac;
-  --warning: #f2b96d;
-  --info: #93c5fd;
+  --background: #141B26;
+  --foreground: #F4EFE6;
+  --heading: #F7F3EC;
+  --card: #1C2533;
+  --card-foreground: #F4EFE6;
+  --popover: #1C2533;
+  --popover-foreground: #F4EFE6;
+  /* Ivory on night ink is 15.1:1. The light sage would disappear as a fill behind ivory text. */
+  --primary: #F4EFE6;
+  --primary-foreground: #1A2332;
+  --secondary: #2A3344;
+  --secondary-foreground: #F4EFE6;
+  --muted: #2A3344;
+  /* Warm secondary text is 10.5:1 on the page and 9.4:1 on cards. */
+  --muted-foreground: #D4C8B8;
+  /* Light sage separates from the card at 4.6:1. Ink on that sage is 4.7:1. */
+  --accent: #7F9278;
+  --accent-foreground: #1A2332;
+  --highlight: #7F9278;
+  --glow: #8A7A62;
+  --destructive: #F0B4AE;
+  --border: #6A5E52;
+  --input: #6A5E52;
+  --ring: #C5D0C4;
+  --chart-1: #F4EFE6;
+  --chart-2: #C5D0C4;
+  --chart-3: #D4C8B8;
+  --chart-4: #E6C08A;
+  --chart-5: #8C9B84;
+  --sidebar: #10161F;
+  --sidebar-foreground: #F4EFE6;
+  --sidebar-primary: #F4EFE6;
+  --sidebar-primary-foreground: #1A2332;
+  --sidebar-accent: #1C2533;
+  --sidebar-accent-foreground: #F4EFE6;
+  --sidebar-border: #6A5E52;
+  --sidebar-ring: #C5D0C4;
+  --success: #9DCFB0;
+  --warning: #E6C08A;
+  --info: #C5D0C4;
 }
 
 @layer base {
@@ -166,13 +174,17 @@ html[data-motion="reduce"] *::after {
   scroll-behavior: auto !important;
 }
 
-.exam-serif { font-family: var(--font-serif); }
+.exam-serif,
+[lang="en"] {
+  font-family: var(--font-serif);
+}
+
+html[lang="en"] {
+  font-family: var(--font-sans);
+}
 
 .landing-wash {
-  background:
-    radial-gradient(900px 420px at 100% -10%, color-mix(in oklch, var(--primary) 16%, transparent), transparent 60%),
-    radial-gradient(680px 380px at -10% 10%, color-mix(in oklch, var(--primary) 10%, transparent), transparent 55%),
-    var(--background);
+  background: var(--background);
 }
 
 @media print {
