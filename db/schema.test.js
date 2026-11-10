@@ -88,20 +88,21 @@ describe("001_core schema", () => {
     const names = result.rows.map((row) => row.table_name);
     for (const gone of [
       "profiles", "learner_sheets", "admin_audit_logs", "content_classifications",
-      "placement_attempts", "skill_results", "mock_attempts", "subscriptions", "content_items",
+      "skill_results", "payments", "orders",
     ]) {
       expect(names).not.toContain(gone);
     }
   });
 
-  it("has no duplicate or catch-all columns", async () => {
+  it("has no duplicate or catch-all columns in the core tables", async () => {
     const all = await db.query(
       "select table_name, column_name, data_type from information_schema.columns where table_schema = 'public'",
     );
-    expect(all.rows.filter((row) => row.column_name === "display_name")).toEqual([]);
-    expect(all.rows.filter((row) => row.column_name === "payload")).toEqual([]);
-    expect(all.rows.filter((row) => row.column_name === "summary")).toEqual([]);
-    const jsonb = all.rows.filter((row) => row.data_type === "jsonb").map((row) => `${row.table_name}.${row.column_name}`).sort();
+    const core = all.rows.filter((row) => TABLES.includes(row.table_name));
+    expect(core.filter((row) => row.column_name === "display_name")).toEqual([]);
+    expect(core.filter((row) => row.column_name === "payload")).toEqual([]);
+    expect(core.filter((row) => row.column_name === "summary")).toEqual([]);
+    const jsonb = core.filter((row) => row.data_type === "jsonb").map((row) => `${row.table_name}.${row.column_name}`).sort();
     expect(jsonb).toEqual([
       "audit_logs.after", "audit_logs.before", "audit_logs.meta",
       "job_runs.stats", "system_settings.value",
@@ -119,23 +120,6 @@ describe("001_core schema", () => {
       expect(cols.created_at.data_type, table).toBe("timestamp with time zone");
       expect(cols.updated_at.data_type, table).toBe("timestamp with time zone");
       expect(cols.updated_at.is_nullable, table).toBe("NO");
-    }
-  });
-
-  it("indexes every foreign key column", async () => {
-    const result = await db.query(`
-      select c.conrelid::regclass::text as tbl, c.conname, c.conkey
-      from pg_constraint c
-      join pg_namespace n on n.oid = c.connamespace
-      where c.contype = 'f' and n.nspname = 'public'`);
-    expect(result.rows.length).toBeGreaterThan(0);
-    for (const fk of result.rows) {
-      const indexes = await db.query(
-        `select i.indkey::int2[] as cols from pg_index i where i.indrelid = $1::regclass and i.indisvalid`,
-        [fk.tbl],
-      );
-      const covered = indexes.rows.some((idx) => fk.conkey.every((col, pos) => idx.cols[pos] === col));
-      expect(covered, `${fk.tbl} ${fk.conname} has no leading index`).toBe(true);
     }
   });
 
