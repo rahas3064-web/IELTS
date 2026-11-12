@@ -48,11 +48,17 @@ describe("createApi", () => {
       ["POST", "/api/placement"],
       ["POST", "/api/mocks/m1"],
       ["POST", "/api/assistant"],
-      ["GET", "/api/billing"],
       ["GET", "/api/admin/users"],
     ]) {
       const response = await fetch(`${base}${route}`, { method, headers: { "content-type": "application/json" }, body: method === "GET" ? undefined : "{}" });
       expect(response.status, `${method} ${route}`).toBe(404);
+    }
+  });
+
+  it("mounts the billing API behind a session (no anonymous access)", async () => {
+    for (const [method, route] of [["GET", "/api/billing"], ["GET", "/api/billing/plans"]]) {
+      const response = await fetch(`${base}${route}`, { method });
+      expect(response.status, `${method} ${route}`).toBe(401);
     }
   });
 

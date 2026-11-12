@@ -67,6 +67,26 @@ export const CODES = Object.freeze({
     fa: "تصحیح هوشمند الان در دسترس نیست. نمره‌ای ثبت نشد؛ کمی بعد دوباره امتحان کن.",
     en: "AI scoring is unavailable right now. No score was recorded; please try again shortly.",
   },
+  price_not_set: {
+    status: 409,
+    fa: "قیمت این طرح هنوز تعیین نشده. فعلاً امکان خریدش نیست.",
+    en: "This plan's price hasn't been set yet, so it can't be bought right now.",
+  },
+  payment_unavailable: {
+    status: 503,
+    fa: "پرداخت آنلاین هنوز وصل نشده. هیچ مبلغی کم نشد و اشتراکی ثبت نشد.",
+    en: "Online payment isn't connected yet. Nothing was charged and no subscription was created.",
+  },
+  discount_invalid: {
+    status: 400,
+    fa: "این کد تخفیف معتبر نیست یا برای این طرح قابل استفاده نیست.",
+    en: "This discount code isn't valid for this plan.",
+  },
+  assistant_unavailable: {
+    status: 503,
+    fa: "دستیار هوش مصنوعی الان جواب نداد. چیزی از سهمیه‌ات کم نشد؛ چند دقیقه بعد دوباره امتحان کن.",
+    en: "The AI assistant didn't respond right now. Nothing was taken from your quota; please try again in a few minutes.",
+  },
   internal: {
     status: 500,
     fa: "مشکلی پیش اومد. لطفاً دوباره امتحان کن.",

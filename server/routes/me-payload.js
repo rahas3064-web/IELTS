@@ -1,4 +1,5 @@
 // The /api/me payload, shared by GET /api/me and PUT /api/onboarding.
+import { resolveSubscription } from "../services/billing.js";
 
 /** Public view of a users row (full phone: this is the owner's own data). */
 export function toPublicUser(row) {
@@ -26,16 +27,26 @@ function nextStep(row) {
   return 3;
 }
 
-/** @param {{query: Function}} db @param {string} userId @returns {Promise<object|null>} */
-export async function loadMe(db, userId) {
+/** @param {{query: Function}} db @param {string} userId @param {Date} [now] @returns {Promise<object|null>} */
+export async function loadMe(db, userId, now = new Date()) {
   const { rows } = await db.query(
     `select u.id, u.phone, u.first_name, u.last_name, u.email, u.role, u.locale, u.status,
             (u.password_hash is not null) as has_password,
             p.exam_type, p.target_band, to_char(p.exam_date, 'YYYY-MM-DD') as exam_date,
             p.exam_date_precision, p.daily_minutes, p.study_days, p.plan_path,
             p.reminder_sms_enabled, to_char(p.reminder_time, 'HH24:MI') as reminder_time,
-            p.onboarding_completed_at, p.email_card_dismissed_at
+            p.onboarding_completed_at, p.email_card_dismissed_at,
+            sub.plan_key as sub_plan_key, sub.status as sub_status, sub.ends_at as sub_ends_at,
+            sub.grace_ends_at as sub_grace_ends_at, sub.tier as sub_tier
      from users u left join learner_profiles p on p.user_id = u.id
+     -- The live subscription rides on the same round trip (one query per /api/me).
+     left join lateral (
+       select s.plan_key, s.status, s.ends_at, s.grace_ends_at, pl.tier
+       from subscriptions s join plans pl on pl.key = s.plan_key
+       where s.user_id = u.id and s.status in ('active', 'grace')
+       order by s.started_at desc
+       limit 1
+     ) sub on true
      where u.id = $1`,
     [userId],
   );
@@ -54,12 +65,18 @@ export async function loadMe(db, userId) {
         reminderTime: row.reminder_time,
       }
     : null;
+  const live = resolveSubscription(
+    {
+      plan_key: row.sub_plan_key, status: row.sub_status, ends_at: row.sub_ends_at, grace_ends_at: row.sub_grace_ends_at, tier: row.sub_tier,
+    },
+    now,
+  );
   return {
     user: toPublicUser(row),
     profile,
     onboarding: { completed: Boolean(row.onboarding_completed_at), step: nextStep(row) },
-    // Billing is wired in S11; until then everyone is on the free plan.
-    subscription: { plan: "free", endsAt: null },
+    // From the live subscriptions row (active, or inside the grace window); free + null otherwise.
+    subscription: { plan: live.plan, endsAt: live.endsAt },
     emailCardDismissed: Boolean(row.email_card_dismissed_at),
   };
 }

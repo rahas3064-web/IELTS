@@ -93,7 +93,7 @@ export function onboardingRoutes(ctx) {
       const { step } = parseBody(stepSchema, req.body);
       const body = parseBody(stepSchemas[step], req.body);
       await saveStep(req.user.id, body);
-      res.json(await loadMe(db, req.user.id));
+      res.json(await loadMe(db, req.user.id, ctx.now()));
     }),
   );
 

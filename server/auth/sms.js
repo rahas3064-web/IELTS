@@ -1,7 +1,7 @@
 /* global console, setTimeout, AbortSignal */
 // SMS.ir adapter for templated ("verify") messages. Rule D: the API key and the
 // template ids come from the environment only. A code is printed in exactly one
-// place, the dev console branch below, and never in live production sends.
+// place, the console branch below, and only when that branch is active.
 import { ApiError } from "../core/errors.js";
 import { maskPhone } from "../core/phone.js";
 
@@ -23,6 +23,7 @@ const defaultSleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** @param {unknown} flag boolean from validateEnv, or a raw env string */
 const isTrue = (flag) => flag === true || String(flag).toLowerCase() === "true";
+const isFalse = (flag) => flag === false || String(flag).toLowerCase() === "false";
 
 class AttemptFailed extends Error {
   /** @param {string} reason short, secret-free reason code @param {boolean} retryable */
@@ -44,7 +45,10 @@ class AttemptFailed extends Error {
  */
 export function createSmsSender({ env, db, fetchImpl = globalThis.fetch, logger = console, sleep = defaultSleep }) {
   const production = env.NODE_ENV === "production";
-  const consoleMode = !production || isTrue(env.SMS_DEV_CONSOLE);
+  // Console only when asked. Development still prints when the flag is unset
+  // (validateEnv defaults it to true). SMS_DEV_CONSOLE=false sends for real
+  // in every environment and must not log the code.
+  const consoleMode = isTrue(env.SMS_DEV_CONSOLE) || (!production && !isFalse(env.SMS_DEV_CONSOLE));
 
   async function record({ phone, templateKey, status, providerMessageId = null, error = null }) {
     try {
@@ -117,7 +121,7 @@ export function createSmsSender({ env, db, fetchImpl = globalThis.fetch, logger 
     if (!Object.hasOwn(TEMPLATE_ENV, templateKey)) throw new TypeError("unknown SMS template key");
     const write = (fields) => (log ? record({ phone, templateKey, ...fields }) : Promise.resolve());
     if (consoleMode) {
-      // The only place a code is ever logged, and only outside live production sends.
+      // The only place a code is ever logged. Live sends (SMS_DEV_CONSOLE=false) never reach this branch.
       logger.info(
         templateKey === "otp"
           ? `[dev-sms] ${maskPhone(phone)} code=${params.CODE ?? ""}`

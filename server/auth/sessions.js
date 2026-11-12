@@ -3,7 +3,7 @@
 // Only the SHA-256 of the token is stored. The cookie carries `token.signature`.
 import { ApiError } from "../core/errors.js";
 import { audit } from "../core/audit.js";
-import { SESSION_COOKIE, parseCookies } from "./cookies.js";
+import { ADMIN_SESSION_COOKIE, SESSION_COOKIE, parseCookies } from "./cookies.js";
 import { hmacHex, newSessionToken, sha256Hex, signValue, unsignValue } from "./tokens.js";
 
 const MINUTE_MS = 60_000;
@@ -83,8 +83,9 @@ export function createSessionService({ db, secret, now = () => new Date() }) {
     },
 
     /** Revoke the session behind a cookie header (logout). Returns the user id, or null if none was active. */
-    async revokeFromCookie(cookieHeader, reason) {
-      const token = unsignValue(secret, parseCookies(cookieHeader)[SESSION_COOKIE]);
+    async revokeFromCookie(cookieHeader, reason, { kind = "learner" } = {}) {
+      const cookieName = kind === "admin" ? ADMIN_SESSION_COOKIE : SESSION_COOKIE;
+      const token = unsignValue(secret, parseCookies(cookieHeader)[cookieName]);
       if (!token) return null;
       const { rows } = await db.query(
         `update sessions set revoked_at = $2, revoked_reason = $3
@@ -100,7 +101,8 @@ export function createSessionService({ db, secret, now = () => new Date() }) {
      * @param {{kind?: 'learner'|'admin', allowPendingDeletion?: boolean}} [options]
      */
     async authenticate(cookieHeader, { kind = "learner", allowPendingDeletion = false } = {}) {
-      const token = unsignValue(secret, parseCookies(cookieHeader)[SESSION_COOKIE]);
+      const cookieName = kind === "admin" ? ADMIN_SESSION_COOKIE : SESSION_COOKIE;
+      const token = unsignValue(secret, parseCookies(cookieHeader)[cookieName]);
       if (!token) throw new ApiError(401, "unauthenticated");
       const { rows } = await db.query(
         `select s.id as session_id, s.kind, s.expires_at, s.last_seen_at, s.revoked_at, s.revoked_reason,
@@ -127,6 +129,13 @@ export function createSessionService({ db, secret, now = () => new Date() }) {
       }
 
       const policy = SESSION_POLICY[kind];
+      if (policy.idleMs != null && at.getTime() - new Date(row.last_seen_at).getTime() > policy.idleMs) {
+        await db.query(
+          "update sessions set revoked_at = $2, revoked_reason = 'logout' where id = $1 and revoked_at is null",
+          [row.session_id, at],
+        );
+        throw new ApiError(401, "unauthenticated");
+      }
       if (at.getTime() - new Date(row.last_seen_at).getTime() >= TOUCH_INTERVAL_MS) {
         const expiresAt = policy.sliding ? new Date(at.getTime() + policy.ttlMs) : new Date(row.expires_at);
         await db.query("update sessions set last_seen_at = $2, expires_at = $3 where id = $1", [row.session_id, at, expiresAt]);

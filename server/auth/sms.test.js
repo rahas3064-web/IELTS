@@ -55,6 +55,34 @@ describe("dev console mode", () => {
     const logged = JSON.stringify([...logger.info.mock.calls, ...logger.warn.mock.calls, ...logger.error.mock.calls]);
     expect(logged).not.toContain("99999");
   });
+
+  it("sends via SMS.ir in development when SMS_DEV_CONSOLE is false and does not print the code", async () => {
+    const fetchImpl = vi.fn(async () => jsonResponse(200, { status: 1, data: { messageId: 88 } }));
+    const logger = makeLogger();
+    const sender = createSmsSender({
+      env: { NODE_ENV: "development", SMS_DEV_CONSOLE: false, SMSIR_API_KEY: "key-should-never-leak", SMSIR_TEMPLATE_OTP: "123456" },
+      db,
+      fetchImpl,
+      logger,
+    });
+    const result = await sender.sendVerify("09121234567", "otp", { CODE: "48213" });
+    expect(result).toEqual({ providerMessageId: "88", mode: "live" });
+    expect(JSON.parse(fetchImpl.mock.calls[0][1].body).parameters).toEqual([{ name: "CODE", value: "48213" }]);
+    const logged = JSON.stringify([...logger.info.mock.calls, ...logger.warn.mock.calls, ...logger.error.mock.calls]);
+    expect(logged).not.toContain("48213");
+    expect(logged).not.toContain("key-should-never-leak");
+  });
+
+  it("treats the string false the same way, and does not print a code when SMS is not configured", async () => {
+    const fetchImpl = vi.fn();
+    const logger = makeLogger();
+    const sender = createSmsSender({ env: { NODE_ENV: "development", SMS_DEV_CONSOLE: "false" }, db, fetchImpl, logger });
+    await expect(sender.sendVerify("09121234567", "otp", { CODE: "48213" })).rejects.toMatchObject({ code: "sms_failed" });
+    expect(fetchImpl).not.toHaveBeenCalled();
+    const logged = JSON.stringify([...logger.info.mock.calls, ...logger.warn.mock.calls, ...logger.error.mock.calls]);
+    expect(logged).not.toContain("48213");
+    expect((await rows())[0].error).toBe("not_configured");
+  });
 });
 
 describe("production live mode", () => {

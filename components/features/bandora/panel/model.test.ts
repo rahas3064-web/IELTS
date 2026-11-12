@@ -139,13 +139,14 @@ describe("bandora panel model", () => {
 });
 
 describe("bandora panel tokens", () => {
-  const css = readFileSync(new URL("./panel.css", import.meta.url), "utf8");
+  const tokens = readFileSync(new URL("./tokens.css", import.meta.url), "utf8");
+  const base = readFileSync(new URL("./base.css", import.meta.url), "utf8");
 
   it("keeps the landing palette and a visible focus ring", () => {
     for (const token of ["#F6F1E7", "#1A2238", "#1F2E54", "#B08D4A", "#7A5C1E", "#D9CFBB", "#E1D8C2", "#FBF8F1"]) {
-      expect(css).toContain(token);
+      expect(tokens).toContain(token);
     }
-    expect(css).toContain(":focus-visible");
+    expect(base).toContain(":focus-visible");
   });
 });
 

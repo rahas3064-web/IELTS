@@ -1,0 +1,44 @@
+/* Notification list + bell popover details. */
+
+.bd-notices {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.bd-notice {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  border: 1px solid var(--bd-border-soft);
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-bg);
+  padding: 12px;
+  text-align: start;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.bd-notice[data-unread="true"] {
+  border-color: var(--bd-gold);
+  background: var(--bd-wash);
+}
+
+.bd-notice__title {
+  color: var(--bd-navy);
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.bd-notice__body {
+  color: var(--bd-body);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.bd-btn.bd-more {
+  margin-top: 12px;
+}

@@ -8,6 +8,9 @@ const root = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  server: {
+    allowedHosts: true,
+  },
   resolve: {
     alias: {
       "@": root,

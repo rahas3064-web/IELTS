@@ -57,6 +57,8 @@ export const ENV_SPEC = Object.freeze([
   v("ADMIN_BOOTSTRAP_PHONE", { secret: true }),
   // Scheduled jobs always run in production; set 1 to run them in development too
   v("ENABLE_JOBS"),
+  // Local-only switch: "true" skips the SMS code step on the real login forms. Never in production.
+  v("AUTH_DEV_BYPASS", { def: "false" }),
 ]);
 
 const MIN_SECRET_LENGTH = 32;
@@ -109,10 +111,15 @@ export function validateEnv(env = {}) {
   if (port === null) errors.push("PORT must be an integer between 1 and 65535");
   config.PORT = port ?? 3000;
   config.SMS_DEV_CONSOLE = config.SMS_DEV_CONSOLE !== "false";
+  // Only the exact string "true" turns the local code-skip on; anything else keeps OTP mandatory.
+  config.AUTH_DEV_BYPASS = config.AUTH_DEV_BYPASS === "true";
   config.NODE_ENV = nodeEnv;
 
   if (production) {
     // The dev console sender prints OTP codes; it must never be active in production.
+    if (config.AUTH_DEV_BYPASS === true) {
+      errors.push("AUTH_DEV_BYPASS must not be true in production (it skips the SMS code)");
+    }
     if (config.SMS_DEV_CONSOLE === true) {
       errors.push("SMS_DEV_CONSOLE must not be true in production (it prints OTP codes to the logs)");
     }

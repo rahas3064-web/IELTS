@@ -1,0 +1,216 @@
+/* AI assistant page: same tokens, hairline cards and classic type as the rest of the panel. */
+.bd-assistant {
+  display: grid;
+  gap: 16px;
+}
+.bd-assistant__layout {
+  display: grid;
+  gap: 16px;
+}
+@media (min-width: 960px) {
+  .bd-assistant__layout {
+    grid-template-columns: 240px minmax(0, 1fr);
+    align-items: start;
+  }
+}
+.bd-assistant__history {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+@media (min-width: 768px) {
+  .bd-assistant__history {
+    padding: 16px;
+  }
+}
+.bd-assistant__convs {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 360px;
+  overflow-y: auto;
+}
+.bd-assistant__convs li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: var(--bd-radius-sm);
+}
+.bd-assistant__convs li.is-active {
+  background: var(--bd-item);
+}
+.bd-assistant__convs .bd-iconbtn {
+  width: 32px;
+  height: 32px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--bd-muted);
+}
+.bd-assistant__conv {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  border: 0;
+  background: none;
+  padding: 6px 8px;
+  overflow: hidden;
+  color: var(--bd-ink);
+  font-size: 14px;
+  text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.bd-assistant__conv:hover {
+  color: var(--bd-navy);
+}
+.bd-assistant__chat {
+  display: grid;
+  gap: 20px;
+}
+.bd-assistant__thread {
+  display: grid;
+  gap: 14px;
+  max-height: 62vh;
+  overflow-y: auto;
+  padding-inline-end: 4px;
+}
+.bd-assistant__empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 24px 8px;
+  color: var(--bd-gold-deep);
+  text-align: center;
+}
+.bd-assistant__thinking {
+  margin: 0;
+  color: var(--bd-gold-deep);
+  font-size: 14px;
+  animation: bd-pulse 1.4s ease-in-out infinite;
+}
+.bd-assistant__composer {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid var(--bd-border-soft);
+  padding-top: 16px;
+}
+.bd-assistant__composer .bd-field {
+  margin: 0;
+}
+.bd-assistant__composer .bd-chip svg {
+  vertical-align: -2px;
+}
+.bd-assistant__composer .bd-error a {
+  margin-inline-start: 6px;
+}
+.bd-app textarea.bd-input {
+  font: inherit;
+  line-height: 1.8;
+  resize: vertical;
+}
+.bd-assistant__essay {
+  font-family: var(--bd-font-latin);
+  font-size: 16px;
+}
+/* Messages */
+.bd-msg {
+  border: 1px solid var(--bd-border-soft);
+  border-radius: var(--bd-radius);
+  padding: 12px 16px;
+}
+.bd-msg--user {
+  justify-self: start;
+  max-width: min(100%, 680px);
+  background: var(--bd-wash);
+}
+.bd-msg--bot {
+  background: var(--bd-bg);
+  border-inline-start: 3px solid var(--bd-gold);
+}
+.bd-msg__who {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 4px;
+  color: var(--bd-gold-deep);
+  font-size: 13px;
+  font-weight: 600;
+}
+.bd-msg__text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.bd-msg__task {
+  margin: 0 0 6px;
+  color: var(--bd-body);
+  font-size: 14px;
+}
+.bd-msg details summary {
+  color: var(--bd-gold-deep);
+  font-size: 14px;
+  cursor: pointer;
+}
+/* Model replies rendered from Markdown */
+.bd-md {
+  color: var(--bd-ink);
+  overflow-wrap: anywhere;
+}
+.bd-md > * {
+  margin: 0 0 10px;
+}
+.bd-md > :last-child {
+  margin-bottom: 0;
+}
+.bd-md__h2,
+.bd-md__h3 {
+  margin-top: 16px;
+  color: var(--bd-navy);
+  font-family: var(--bd-font-display);
+  font-weight: 800;
+  line-height: 1.6;
+}
+.bd-md__h2 {
+  font-size: 19px;
+}
+.bd-md__h3 {
+  font-size: 17px;
+}
+.bd-md > :first-child {
+  margin-top: 0;
+}
+.bd-md ul,
+.bd-md ol {
+  padding-inline-start: 22px;
+}
+.bd-md li + li {
+  margin-top: 4px;
+}
+.bd-md strong {
+  color: var(--bd-navy);
+}
+.bd-md code {
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-item);
+  padding: 1px 5px;
+  font-size: 14px;
+  unicode-bidi: isolate;
+}
+.bd-md pre {
+  overflow-x: auto;
+  border: 1px solid var(--bd-border-soft);
+  border-radius: var(--bd-radius-sm);
+  background: var(--bd-item);
+  padding: 10px 12px;
+}
+.bd-md pre code {
+  background: none;
+  padding: 0;
+}
+.bd-md hr {
+  border: 0;
+  border-top: 1px solid var(--bd-border-soft);
+}

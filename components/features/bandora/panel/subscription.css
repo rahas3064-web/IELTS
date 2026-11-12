@@ -1,0 +1,232 @@
+/* Subscription page: plan cards follow the landing pricing cards (plans.tsx):
+   hairline surface card for monthly, navy card with gold inner rule for quarterly. */
+
+.bd-sub-page {
+  display: grid;
+  gap: 20px;
+}
+
+.bd-title--sm {
+  font-size: clamp(19px, 2.4vw, 24px);
+}
+
+.bd-sub-facts {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.bd-sub-facts > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: baseline;
+}
+
+.bd-sub-facts dt {
+  color: var(--bd-muted);
+  font-size: 14px;
+}
+
+.bd-sub-facts dd {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 0;
+  color: var(--bd-navy);
+  font-weight: 700;
+}
+
+.bd-sub-badge {
+  border: 1px solid var(--bd-green);
+  border-radius: 3px;
+  padding: 0 10px;
+  color: var(--bd-green);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 24px;
+}
+
+.bd-sub-badge[data-status="grace"] {
+  border-color: var(--bd-gold);
+  color: var(--bd-gold-deep);
+}
+
+/* Usage bars */
+.bd-usage {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bd-usage__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+  color: var(--bd-ink);
+  font-size: 15px;
+}
+
+.bd-usage__bar {
+  height: 8px;
+  overflow: hidden;
+  border: 1px solid var(--bd-border-soft);
+  border-radius: 999px;
+  background: var(--bd-item);
+}
+
+.bd-usage__bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--bd-gold);
+  transition: width var(--bd-dur) var(--bd-ease);
+}
+
+.bd-usage__bar[data-full="true"] > span {
+  background: var(--bd-gold-deep);
+}
+
+/* Plan cards */
+.bd-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+
+.bd-plan {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--bd-border);
+  border-radius: var(--bd-radius);
+  background: var(--bd-surface);
+  padding: 28px 24px;
+}
+
+.bd-plan[data-featured="true"] {
+  border-color: var(--bd-gold);
+  background: var(--bd-navy);
+  color: var(--bd-bg);
+  box-shadow: inset 0 0 0 6px var(--bd-navy), inset 0 0 0 7px rgba(176, 141, 74, .45);
+}
+
+.bd-plan__name {
+  margin: 0;
+  color: var(--bd-navy);
+  font-family: var(--bd-font-display);
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.bd-plan__price {
+  margin: 4px 0 0;
+  color: var(--bd-navy);
+  font-family: var(--bd-font-display);
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.bd-plan__unset {
+  color: var(--bd-muted);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.bd-plan__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin: 4px 0 20px;
+  color: var(--bd-muted);
+  font-size: 14px;
+}
+
+.bd-plan__save {
+  color: var(--bd-green);
+}
+
+.bd-plan__rule {
+  height: 1px;
+  margin-bottom: 18px;
+  background: var(--bd-border);
+}
+
+.bd-plan__list {
+  display: grid;
+  flex: 1;
+  gap: 12px;
+  margin: 0 0 24px;
+  padding: 0;
+  list-style: none;
+}
+
+.bd-plan__list li {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: var(--bd-ink);
+  font-size: 15px;
+}
+
+.bd-plan__list svg {
+  color: var(--bd-green);
+}
+
+.bd-plan[data-featured="true"] .bd-plan__name,
+.bd-plan[data-featured="true"] .bd-plan__list li {
+  color: var(--bd-bg);
+}
+
+.bd-plan[data-featured="true"] .bd-plan__price,
+.bd-plan[data-featured="true"] .bd-plan__list svg {
+  color: #D6B87A; /* landing premium gold (plans.tsx) */
+}
+
+.bd-plan[data-featured="true"] .bd-plan__unset,
+.bd-plan[data-featured="true"] .bd-plan__meta {
+  color: var(--bd-pending);
+}
+
+.bd-plan[data-featured="true"] .bd-plan__save {
+  color: #D6B87A;
+}
+
+.bd-plan[data-featured="true"] .bd-plan__rule {
+  background: rgba(214, 184, 122, .35);
+}
+
+/* Cream button on navy, as the landing's .bd-cream CTA */
+.bd-app .bd-btn--cream {
+  border-color: var(--bd-bg);
+  background: var(--bd-bg);
+  color: var(--bd-navy);
+}
+
+.bd-app .bd-btn--cream:hover:not(:disabled) {
+  background: var(--bd-outline-hover);
+  color: var(--bd-navy);
+}
+
+.bd-plan[data-featured="true"] .bd-btn:disabled {
+  border-color: var(--bd-pending);
+  color: var(--bd-pending);
+}
+
+.bd-plan__error {
+  margin-top: 12px;
+}
+
+.bd-plan[data-featured="true"] .bd-plan__error {
+  color: #F0C9BF;
+}
+
+.bd-sub-back {
+  justify-self: start;
+}

@@ -27,7 +27,10 @@ export function BandoraPricing() {
           <div data-reveal="1" style={{ position: "relative", border: "1px solid #B08D4A", borderRadius: 6, background: "#1F2E54", color: "#F6F1E7", padding: "44px 40px", display: "flex", flexDirection: "column", boxShadow: "inset 0 0 0 6px #1F2E54, inset 0 0 0 7px rgba(176,141,74,.45)" }}>
             <span style={{ position: "absolute", top: 22, left: 24, border: "1px solid #D6B87A", color: "#D6B87A", borderRadius: 3, padding: "0 12px", fontSize: 13, lineHeight: "26px" }}>پیشنهاد ما</span>
             <div style={{ fontFamily: playfair, fontSize: 30, color: "#F6F1E7", fontWeight: 500 }}>Premium</div>
-            <div style={{ fontFamily: estedad, fontWeight: 800, fontSize: 34, color: "#D6B87A", margin: "6px 0 28px", lineHeight: 1.4 }}>[قیمت]</div>
+            <div style={{ fontFamily: estedad, fontWeight: 800, fontSize: 34, color: "#D6B87A", margin: "6px 0 28px", lineHeight: 1.4 }}>
+              ۹۹۸٬۰۰۰ تومان
+              <div style={{ fontFamily: estedad, fontWeight: 600, fontSize: 16, color: "#D6B87A", lineHeight: 1.6, marginTop: 4 }}>سه‌ماهه ۱٬۸۹۷٬۰۰۰ تومان</div>
+            </div>
             <div style={{ height: 1, background: "rgba(214,184,122,.35)", marginBottom: 24 }} />
             <ul style={{ listStyle: "none", margin: "0 0 36px", padding: 0, display: "grid", gap: 14, flex: 1 }}>
               {PREMIUM_FEATURES.map((item) => (

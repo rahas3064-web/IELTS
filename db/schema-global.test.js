@@ -30,6 +30,14 @@ const NEW_TABLES = {
     "payment_attempts", "invoices", "payment_provider_events",
   ],
   "008_assistant": ["assistant_conversations", "assistant_messages"],
+  // Reference rows only (plan catalogue + quotas), no new tables.
+  "009_billing_catalogue": [],
+  // Published rial prices, no new tables.
+  "010_published_prices": [],
+  // Writing submissions sent to the assistant for review.
+  "011_assistant_writing_reviews": ["assistant_writing_reviews"],
+  // Free/premium entitlement rows (practice parts, mock AI), no new tables.
+  "012_plan_entitlements": [],
 };
 const CORE = [
   "users", "otp_codes", "otp_locks", "sessions", "learner_profiles", "admin_credentials", "audit_logs",
@@ -49,7 +57,7 @@ beforeAll(async () => { db = await createMigratedDb(); });
 afterAll(async () => { await db.close(); });
 
 describe("migration set", () => {
-  it("has 001..008 in order", async () => {
+  it("has 001..012 in order", async () => {
     const versions = (await listMigrations(migrationsDir)).map((m) => m.version);
     expect(versions).toEqual(["001_core", ...Object.keys(NEW_TABLES)]);
   });
@@ -58,7 +66,7 @@ describe("migration set", () => {
     const result = await db.query("select table_name from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE'");
     const expected = [...CORE, "schema_migrations", ...Object.values(NEW_TABLES).flat()].sort();
     expect(result.rows.map((r) => r.table_name).sort()).toEqual(expected);
-    expect(expected.length).toBe(71);
+    expect(expected.length).toBe(72);
   });
 
   it.each(Object.entries(NEW_TABLES))("%s creates its tables", async (version, tables) => {

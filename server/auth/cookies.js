@@ -1,5 +1,6 @@
 // Session cookie plumbing. Only this file knows the cookie name and flags.
 export const SESSION_COOKIE = "bd_session";
+export const ADMIN_SESSION_COOKIE = "bd_admin";
 
 /** @param {string|undefined} header raw Cookie header @returns {Record<string, string>} */
 export function parseCookies(header) {
@@ -22,11 +23,11 @@ export function parseCookies(header) {
 const baseOptions = (secure) => ({ httpOnly: true, sameSite: "lax", secure, path: "/" });
 
 /** @param {import("express").Response} res @param {string} signedValue */
-export function setSessionCookie(res, signedValue, { secure, maxAgeMs }) {
-  res.cookie(SESSION_COOKIE, signedValue, { ...baseOptions(secure), maxAge: maxAgeMs });
+export function setSessionCookie(res, signedValue, { secure, maxAgeMs, name = SESSION_COOKIE }) {
+  res.cookie(name, signedValue, { ...baseOptions(secure), maxAge: maxAgeMs });
 }
 
 /** @param {import("express").Response} res */
-export function clearSessionCookie(res, { secure }) {
-  res.clearCookie(SESSION_COOKIE, baseOptions(secure));
+export function clearSessionCookie(res, { secure, name = SESSION_COOKIE }) {
+  res.clearCookie(name, baseOptions(secure));
 }

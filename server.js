@@ -1,7 +1,7 @@
 import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { assertEnv, validateEnv } from "./server/core/env.js";
+import { assertEnv, featureStatus, validateEnv } from "./server/core/env.js";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const isProd = process.env.NODE_ENV === "production";
@@ -39,6 +39,27 @@ if (!isProd) {
   }
 }
 
+let baleToStart = null;
+const apiOptions = { config };
+if (featureStatus(config).bale) {
+  const { createBaleClient } = await import("./server/payments/bale-client.js");
+  const { createBalePayment, paymentModeProblem } = await import("./server/payments/bale-payment.js");
+  const { startBaleListener } = await import("./server/payments/bale-listener.js");
+  const problem = paymentModeProblem(config);
+  if (problem) {
+    console.warn(`[bale] checkout is off (${problem})`);
+  } else {
+    const client = createBaleClient({ token: config.BALE_BOT_TOKEN });
+    const payment = createBalePayment({ db, config, client });
+    apiOptions.paymentProvider = payment;
+    baleToStart = { start: () => startBaleListener({
+      client,
+      handleUpdate: (update) => payment.handleUpdate(update),
+      reconcile: () => payment.reconcile(),
+    }) };
+  }
+}
+
 const app = express();
 app.disable("x-powered-by");
 if (isProd) app.set("trust proxy", 1);
@@ -57,7 +78,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(createApi(db, { config }));
+app.use(createApi(db, apiOptions));
 
 if (isProd) {
   const dist = path.join(root, "dist");
@@ -81,8 +102,12 @@ if (isProd) {
   app.use(vite.middlewares);
 }
 
+let baleListener = null;
 const server = app.listen(port, host, () => {
   console.log(`Bandora listening on http://localhost:${port}`);
+  if (!baleToStart) return;
+  baleListener = baleToStart.start();
+  console.info("[bale] payment listener started");
 });
 
 // Scheduled jobs (spec 4.2): production, or locally with ENABLE_JOBS=1. The runner takes an
@@ -102,6 +127,7 @@ let stopping = false;
 async function shutdown() {
   if (stopping) return;
   stopping = true;
+  baleListener?.stop();
   jobs?.stop();
   server.close();
   await db.close().catch(() => {});

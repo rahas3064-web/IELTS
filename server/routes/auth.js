@@ -6,6 +6,7 @@ import { ApiError } from "../core/errors.js";
 import { toLatinDigits } from "../core/phone.js";
 import { parseBody, v } from "../core/validate.js";
 import { enforceLimit } from "../auth/limits.js";
+import { assertDevBypass } from "../auth/dev-bypass.js";
 import { issueSignupToken, readSignupToken, sha256Hex } from "../auth/tokens.js";
 import { clientAddress } from "../rate-limit.js";
 import { hashPassword, verifyPassword } from "../passwords.js";
@@ -16,6 +17,7 @@ import { registerLearner } from "./register.js";
 const SIGNUP_TOKEN_TTL_MS = 10 * 60_000;
 const PASSWORD_LOGIN_EMAIL_LIMIT = { max: 5, windowSec: 900 };
 const PASSWORD_LOGIN_IP_LIMIT = { max: 30, windowSec: 900 };
+const DEV_BYPASS_IP_LIMIT = { max: 30, windowSec: 900 };
 const USER_COLUMNS = `id, phone, first_name, last_name, email, role, locale, status, (password_hash is not null) as has_password`;
 
 const requestSchema = v.object({ phone: v.string({ min: 1, max: 40 }) });
@@ -64,7 +66,7 @@ export function authRoutes(ctx) {
     await audit(db, {
       actorId: row.id,
       actorRole: actorRoleOf(row),
-      action: method === "otp" ? "auth_login" : "auth_password_login",
+      action: method === "password" ? "auth_password_login" : "auth_login",
       targetType: "user",
       targetId: row.id,
       ipHash: ctx.ipHash(req),
@@ -83,6 +85,16 @@ export function authRoutes(ctx) {
     }),
   );
 
+  /** After the phone is accepted: sign in an existing account, or hand out a sign-up token for the name step. */
+  async function continueWithPhone(req, res, phone, method) {
+    const { rows } = await db.query(`select ${USER_COLUMNS} from users where phone = $1`, [phone]);
+    if (rows[0]) {
+      res.json({ user: await logIn(req, res, rows[0], method) });
+      return;
+    }
+    res.json({ needsProfile: true, signupToken: issueSignupToken(secret, { phone, now: now(), ttlMs: SIGNUP_TOKEN_TTL_MS }) });
+  }
+
   router.post(
     "/otp/verify",
     ctx.originGuard,
@@ -90,12 +102,25 @@ export function authRoutes(ctx) {
       const body = parseBody(verifySchema, req.body);
       const phone = requirePhone(body.phone);
       await ctx.otp.verify({ phone, purpose: "login", code: body.code });
-      const { rows } = await db.query(`select ${USER_COLUMNS} from users where phone = $1`, [phone]);
-      if (rows[0]) {
-        res.json({ user: await logIn(req, res, rows[0], "otp") });
-        return;
-      }
-      res.json({ needsProfile: true, signupToken: issueSignupToken(secret, { phone, now: now(), ttlMs: SIGNUP_TOKEN_TTL_MS }) });
+      await continueWithPhone(req, res, phone, "otp");
+    }),
+  );
+
+  // Local-only (AUTH_DEV_BYPASS=true): the UI asks whether to skip the SMS code step.
+  router.get("/dev-bypass", (_req, res) => {
+    res.json({ enabled: ctx.devBypass });
+  });
+
+  // Local-only: the same as /otp/verify without the SMS code. 404 when the switch is off.
+  router.post(
+    "/dev-bypass/phone",
+    ctx.originGuard,
+    wrap(async (req, res) => {
+      assertDevBypass(ctx);
+      const { phone } = parseBody(requestSchema, req.body);
+      const normalised = requirePhone(phone);
+      await enforceLimit(db, `devbypass:ip:${sha256Hex(clientAddress(req)).slice(0, 32)}`, DEV_BYPASS_IP_LIMIT.max, DEV_BYPASS_IP_LIMIT.windowSec);
+      await continueWithPhone(req, res, normalised, "dev_bypass");
     }),
   );
 

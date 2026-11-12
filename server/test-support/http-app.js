@@ -9,8 +9,12 @@ import { resetLimits } from "../rate-limit.js";
 
 export const TEST_SECRETS = Object.freeze({ SESSION_SECRET: "s".repeat(48), OTP_PEPPER: "p".repeat(48) });
 
-/** @param {{config?: Record<string, any>}} [options] */
-export async function createTestApp({ config = {} } = {}) {
+/**
+ * @param {{config?: Record<string, any>, mediaDir?: string,
+ *          paymentProvider?: {createCheckout: Function}|((ctx: {db: any, now: () => Date}) => {createCheckout: Function}),
+ *          assistant?: {reply?: Function, env?: Record<string, any>}, mocks?: {score?: Function}}} [options]
+ */
+export async function createTestApp({ config = {}, mediaDir, paymentProvider, assistant, mocks } = {}) {
   const db = await createMigratedDb();
   let time = Date.now();
   const clock = {
@@ -32,7 +36,11 @@ export async function createTestApp({ config = {} } = {}) {
     const s = app.listen(0, "127.0.0.1", () => resolve(s));
   });
   const base = `http://127.0.0.1:${server.address().port}`;
-  app.use(createApi(db, { config: { NODE_ENV: "test", ...TEST_SECRETS, ...config }, sms, now: clock.now }));
+  const resolvedConfig = { NODE_ENV: "test", ...TEST_SECRETS, ...config };
+  const provider = typeof paymentProvider === "function"
+    ? paymentProvider({ db, now: clock.now, config: resolvedConfig })
+    : paymentProvider;
+  app.use(createApi(db, { config: resolvedConfig, sms, now: clock.now, mediaDir, paymentProvider: provider, assistant, mocks }));
   app.use((_req, res) => res.status(200).send("spa-fallback"));
 
   /** A device: remembers cookies between requests. */

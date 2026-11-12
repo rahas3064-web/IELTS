@@ -1,0 +1,51 @@
+/*
+ * The single home of every colour, font and radius used by the learner panel,
+ * login and onboarding. Values are read from the landing page
+ * (landing.css, bits.tsx, header.tsx, plans.tsx); the landing wins on any difference.
+ * Components and the other panel CSS files use these variables only.
+ */
+.bd-app {
+  /* Palette */
+  --bd-bg: #F6F1E7;
+  --bd-surface: #FBF8F1;
+  --bd-ink: #1A2238;
+  --bd-navy: #1F2E54;
+  --bd-gold: #B08D4A;
+  --bd-gold-deep: #7A5C1E;
+  --bd-border: #D9CFBB;
+  --bd-border-soft: #E1D8C2;
+  --bd-green: #4E7B62;
+  --bd-green-bg: #E7DFCD;
+
+  /* Landing supporting tones */
+  --bd-body: #3F465C;
+  --bd-muted: #6B6757;
+  --bd-item: #EFE8D8;
+  --bd-wash: #F3EBD8;
+  --bd-pending: #CBBF9F;
+  --bd-select: #E4D3AC;
+  --bd-navy-hover: #2C4073;
+  --bd-outline-hover: #EBE3D0;
+
+  /* Muted red derived from the palette for error text: always paired with an icon or words. [DEFAULT - adjustable] */
+  --bd-danger: #8C3B2F;
+
+  /* Shape */
+  --bd-radius: 6px;
+  --bd-radius-sm: 4px;
+
+  /* Motion */
+  --bd-ease: cubic-bezier(.22, 1, .36, 1);
+  --bd-dur: 250ms;
+
+  /* Type: Persian is Vazirmatn body with Estedad display; English is serif with Playfair / Cormorant display. */
+  --bd-font-body: Vazirmatn, sans-serif;
+  --bd-font-display: Estedad, Vazirmatn, sans-serif;
+  --bd-font-latin: "Playfair Display", Georgia, serif;
+  --bd-font-label: "Cormorant Garamond", Georgia, serif;
+}
+
+.bd-app[data-locale="en"] {
+  --bd-font-body: Newsreader, Georgia, serif;
+  --bd-font-display: "Playfair Display", Georgia, serif;
+}

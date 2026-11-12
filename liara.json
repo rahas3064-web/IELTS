@@ -1,0 +1,9 @@
+{
+  "app": "rahaielts",
+  "platform": "node",
+  "port": 3000,
+  "node": {
+    "version": "22",
+    "timezone": "Asia/Tehran"
+  }
+}

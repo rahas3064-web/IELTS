@@ -16,7 +16,7 @@ export function meRoutes(ctx) {
     "/me",
     auth,
     wrap(async (req, res) => {
-      const me = await loadMe(ctx.db, req.user.id);
+      const me = await loadMe(ctx.db, req.user.id, ctx.now());
       if (!me) throw new ApiError(401, "unauthenticated");
       res.json(me);
     }),

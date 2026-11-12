@@ -1,0 +1,46 @@
+/* Mock tests: same hairline cards and tokens as the rest of the panel. */
+.bd-mock__card,
+.bd-mock__sections li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--bd-border-soft);
+  border-radius: var(--bd-radius);
+  background: var(--bd-bg);
+  padding: 14px 16px;
+}
+.bd-mock__card p,
+.bd-mock__sections p {
+  margin: 0;
+}
+.bd-mock__sections {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.bd-mock__passage {
+  max-height: 50vh;
+  overflow-y: auto;
+  border: 1px solid var(--bd-border-soft);
+  border-radius: var(--bd-radius);
+  background: var(--bd-bg);
+  padding: 16px;
+  font-family: var(--bd-font-latin);
+  white-space: pre-wrap;
+}
+.bd-mock__passage h3 {
+  margin: 0 0 8px;
+  color: var(--bd-navy);
+}
+.bd-mock__lock {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--bd-navy);
+  font-weight: 600;
+}

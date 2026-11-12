@@ -51,6 +51,36 @@ export function issueSignupToken(secret, { phone, now, ttlMs }) {
   return `${body}.${hmacBase64Url(subKey(secret, "signup"), body)}`;
 }
 
+/**
+ * Short-lived signed payload. `label` is part of the key, so tokens cannot cross purposes.
+ * @param {string} secret
+ * @param {string} label
+ * @param {Record<string, string>} payload
+ * @param {{now: Date, ttlMs: number}} clock
+ */
+export function issueGateToken(secret, label, payload, { now, ttlMs }) {
+  const body = Buffer.from(JSON.stringify({ ...payload, e: now.getTime() + ttlMs })).toString("base64url");
+  return `${body}.${hmacBase64Url(subKey(secret, label), body)}`;
+}
+
+/** @returns {Record<string, unknown>|null} */
+export function readGateToken(secret, label, token, { now }) {
+  if (typeof token !== "string") return null;
+  const [body, signature, extra] = token.split(".");
+  if (!body || !signature || extra !== undefined) return null;
+  const expected = Buffer.from(hmacBase64Url(subKey(secret, label), body));
+  const actual = Buffer.from(signature);
+  if (expected.length !== actual.length || !timingSafeEqual(expected, actual)) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
+    if (!parsed || typeof parsed !== "object" || !Number.isFinite(parsed.e)) return null;
+    if (now.getTime() > parsed.e) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
 /** @returns {{phone: string}|null} null when forged, malformed or expired */
 export function readSignupToken(secret, token, { now }) {
   if (typeof token !== "string") return null;
