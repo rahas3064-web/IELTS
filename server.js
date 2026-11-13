@@ -17,7 +17,8 @@ if (isProd) {
   config = checked.config;
 }
 const port = config.PORT;
-const host = "localhost";
+// Hosts like Railway route traffic from outside the container, so production listens on every interface.
+const host = process.env.HOST || (isProd ? "0.0.0.0" : "localhost");
 
 const { openDb } = await import("./server/db.js");
 const { applyMigrations } = await import("./server/migrate.js");
