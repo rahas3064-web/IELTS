@@ -38,6 +38,8 @@ const NEW_TABLES = {
   "011_assistant_writing_reviews": ["assistant_writing_reviews"],
   // Free/premium entitlement rows (practice parts, mock AI), no new tables.
   "012_plan_entitlements": [],
+  // RLS on existing public tables; no new tables and no policies.
+  "013_enable_rls": [],
 };
 const CORE = [
   "users", "otp_codes", "otp_locks", "sessions", "learner_profiles", "admin_credentials", "audit_logs",
@@ -57,7 +59,7 @@ beforeAll(async () => { db = await createMigratedDb(); });
 afterAll(async () => { await db.close(); });
 
 describe("migration set", () => {
-  it("has 001..012 in order", async () => {
+  it("has 001..013 in order", async () => {
     const versions = (await listMigrations(migrationsDir)).map((m) => m.version);
     expect(versions).toEqual(["001_core", ...Object.keys(NEW_TABLES)]);
   });
@@ -89,10 +91,12 @@ describe("migration set", () => {
     }
   });
 
-  it("contains no ALTER TABLE, extension, citext or inline partial unique constraints", async () => {
+  it("contains no ALTER TABLE except ENABLE ROW LEVEL SECURITY, and no extension, citext or inline partial unique constraints", async () => {
     for (const { path: file, version } of await listMigrations(migrationsDir)) {
       const sql = (await fs.readFile(file, "utf8")).replace(/--.*$/gm, "").toLowerCase();
-      expect(sql, version).not.toMatch(/\balter table\b/);
+      const withoutRls = sql.replace(/alter table\b[^;]*\benable row level security\b/g, "");
+      expect(withoutRls, version).not.toMatch(/\balter table\b/);
+      expect(sql, version).not.toMatch(/\bforce row level security\b/);
       expect(sql, version).not.toMatch(/create extension|citext|btree_gist/);
       expect(sql, version).not.toMatch(/nulls not distinct/);
       expect(sql, version).not.toMatch(/unique\s*\([^)]*\)\s*where/);
@@ -110,6 +114,27 @@ describe("migration set", () => {
 });
 
 describe("conventions on every table", () => {
+  it("enables row level security on every public table, with no policies and no force", async () => {
+    const open = await db.query(`
+      select c.relname
+      from pg_class c
+      join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity
+      order by c.relname`);
+    expect(open.rows).toEqual([]);
+    const forced = await db.query(`
+      select c.relname
+      from pg_class c
+      join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and c.relkind = 'r' and c.relforcerowsecurity`);
+    expect(forced.rows).toEqual([]);
+    const policies = await db.query("select policyname from pg_policies where schemaname = 'public'");
+    expect(policies.rows).toEqual([]);
+    const rlsFile = (await listMigrations(migrationsDir)).find((m) => m.version === "013_enable_rls");
+    const sql = (await fs.readFile(rlsFile.path, "utf8")).replace(/--.*$/gm, "").toLowerCase();
+    expect(sql).not.toMatch(/liara_archive/);
+  });
+
   it("indexes every foreign key column (leading index)", async () => {
     const { checked, missing } = await findUnindexedForeignKeys(db);
     expect(checked).toBeGreaterThan(60);

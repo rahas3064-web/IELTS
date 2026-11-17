@@ -61,10 +61,11 @@ describe("migration files", () => {
     expect(list[0].version).toBe("001_core");
   });
 
-  it("contain no ALTER TABLE patches, extensions or citext", async () => {
+  it("contain no ALTER TABLE patches except ENABLE ROW LEVEL SECURITY, and no extensions or citext", async () => {
     for (const { path: file } of await listMigrations(dir)) {
       const sql = (await fs.readFile(file, "utf8")).replace(/--.*$/gm, "").toLowerCase();
-      expect(sql).not.toMatch(/\balter table\b/);
+      const withoutRls = sql.replace(/alter table\b[^;]*\benable row level security\b/g, "");
+      expect(withoutRls).not.toMatch(/\balter table\b/);
       expect(sql).not.toMatch(/create extension/);
       expect(sql).not.toMatch(/citext/);
     }
