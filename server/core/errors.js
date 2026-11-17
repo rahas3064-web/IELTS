@@ -27,6 +27,11 @@ export const CODES = Object.freeze({
     fa: "اجازهٔ انجام این کار رو نداری.",
     en: "You are not allowed to do this.",
   },
+  wrong_host: {
+    status: 421,
+    fa: "این درخواست باید روی نشانی اصلی سایت انجام شود.",
+    en: "This request has to be sent to the main site address.",
+  },
   not_found: {
     status: 404,
     fa: "چیزی که دنبالش بودی پیدا نشد.",

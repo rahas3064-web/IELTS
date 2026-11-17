@@ -2,6 +2,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import express from "express";
 import { createAuthContext } from "./auth/context.js";
+import { canonicalHost } from "./canonical-host.js";
 import { errorHandler, notFoundHandler } from "./core/errors.js";
 import { adminAuthRoutes, adminGuardRoutes } from "./routes/admin-auth.js";
 import { assistantRoutes } from "./routes/assistant.js";
@@ -30,6 +31,7 @@ export function createApi(db, options = {}) {
   const router = express.Router();
   const auth = createAuthContext(db, options);
 
+  router.use(canonicalHost(options.config ?? {}));
   router.use(express.json({ limit: "1mb" }));
 
   router.get("/api/health", (_req, res) => {
