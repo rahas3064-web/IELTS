@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -82,5 +83,74 @@ describe("content review", () => {
     expect(list.status).toBe(200);
     expect(list.json.items.every((item) => item.skill === "reading" && item.isFree === true)).toBe(true);
     expect((await manager.request("GET", "/api/admin/content?skill=speaking")).json.items).toEqual([]);
+  });
+});
+
+describe("media backup", () => {
+  async function insertAudio(name) {
+    const id = crypto.randomUUID();
+    const bytes = Buffer.from(name);
+    fs.writeFileSync(path.join(mediaDir, `${id}.bin`), bytes);
+    await t.db.query(
+      `insert into media_assets (id, kind, storage_key, mime, duration_sec, bytes)
+       values ($1, 'audio', $2, 'audio/wav', 3, $3)`,
+      [id, `audio/${id}.bin`, bytes.length],
+    );
+    return { id, bytes };
+  }
+
+  it("gives the manifest and the file only to super_admin and writes an audit row", async () => {
+    const { id, bytes } = await insertAudio("wav-bytes");
+    const owner = await admin("super_admin");
+    const manifest = await owner.request("GET", "/api/admin/media/export");
+    expect(manifest.status).toBe(200);
+    expect(manifest.headers.get("cache-control")).toBe("no-store");
+    const file = manifest.json.files.find((row) => row.id === id);
+    expect(file).toMatchObject({
+      kind: "audio",
+      storageKey: `audio/${id}.bin`,
+      mime: "audio/wav",
+      bytes: bytes.length,
+      onDisk: true,
+      downloadPath: `/api/admin/media/files/${id}`,
+    });
+    expect(JSON.stringify(manifest.json)).not.toContain("transcript");
+    const downloaded = await owner.request("GET", `/api/admin/media/files/${id}`);
+    expect(downloaded.status).toBe(200);
+    expect(downloaded.text).toBe("wav-bytes");
+    const audit = await t.db.query(
+      "select actor_role from audit_logs where action = 'media_export' order by created_at desc limit 1",
+    );
+    expect(audit.rows[0].actor_role).toBe("super_admin");
+  });
+
+  it("refuses every other admin role and a learner", async () => {
+    for (const role of ["content_manager", "reviewer", "support_agent"]) {
+      const device = await admin(role);
+      expect((await device.request("GET", "/api/admin/media/export")).status, role).toBe(403);
+      expect((await device.request("GET", `/api/admin/media/files/${crypto.randomUUID()}`)).status, role).toBe(403);
+    }
+    const learner = t.client();
+    await t.signUp(learner, freshPhone());
+    expect((await learner.request("GET", "/api/admin/media/export")).status).toBe(401);
+  });
+
+  it("does not read a storage key that leaves the media directory", async () => {
+    const id = crypto.randomUUID();
+    const outside = path.resolve(mediaDir, "..", `outside-${id}.bin`);
+    fs.writeFileSync(outside, "OUTSIDE_CANARY");
+    await t.db.query(
+      `insert into media_assets (id, kind, storage_key, mime, duration_sec, bytes)
+       values ($1, 'audio', $2, 'audio/wav', 3, 15)`,
+      [id, `../../outside-${id}.bin`],
+    );
+    const owner = await admin("super_admin");
+    const manifest = await owner.request("GET", "/api/admin/media/export");
+    const file = manifest.json.files.find((row) => row.id === id);
+    expect(file.onDisk).toBe(false);
+    const downloaded = await owner.request("GET", `/api/admin/media/files/${id}`);
+    expect(downloaded.status).toBe(404);
+    expect(downloaded.text).not.toContain("OUTSIDE_CANARY");
+    fs.unlinkSync(outside);
   });
 });

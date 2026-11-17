@@ -13,6 +13,7 @@ export const PERMISSIONS = Object.freeze([
   "sms.send",
   "admins.manage",
   "audit.read",
+  "backup.read",
 ]);
 
 /** @type {Readonly<Record<string, readonly string[]>>} */

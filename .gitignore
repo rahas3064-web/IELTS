@@ -40,6 +40,10 @@ yarn-error.log*
 .env*
 !.env.example
 
+# Database dumps stay on this PC. The GitHub repo is public.
+*.dump
+backup.log
+
 # vercel
 .vercel
 

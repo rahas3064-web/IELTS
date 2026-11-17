@@ -43,6 +43,18 @@ const audioSchema = v.object({
 });
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const SAFE_MIME = /^(audio|image)\/[A-Za-z0-9.+-]+$/;
+
+/** Basename inside mediaDir. A storage key with `..` never leaves that folder. */
+function localMediaFile(mediaDir, storageKey) {
+  if (typeof storageKey !== "string" || storageKey.includes("\0")) return null;
+  const name = path.basename(storageKey);
+  if (!name || name === "." || name === "..") return null;
+  const root = path.resolve(mediaDir);
+  const full = path.resolve(root, name);
+  if (full !== path.join(root, name)) return null;
+  return full;
+}
 
 function gate(ctx, permission) {
   return (req, res, next) => {
@@ -216,6 +228,82 @@ export function adminContentRoutes(ctx, { mediaDir }) {
     wrap(async (req, res) => {
       await bank.approvePlacementVersion(req.user, req.params.id);
       res.json({ ok: true });
+    }),
+  );
+
+  router.get(
+    "/media/export",
+    gate(ctx, "backup.read"),
+    wrap(async (req, res) => {
+      const { rows } = await ctx.db.query(
+        `select id, kind, storage_key, mime, bytes, duration_sec
+         from media_assets order by created_at asc, id asc`,
+      );
+      const files = [];
+      for (const row of rows) {
+        const full = localMediaFile(mediaDir, row.storage_key);
+        let onDisk = false;
+        if (full) {
+          try {
+            await fs.access(full);
+            onDisk = true;
+          } catch {
+            onDisk = false;
+          }
+        }
+        files.push({
+          id: row.id,
+          kind: row.kind,
+          storageKey: row.storage_key,
+          mime: row.mime,
+          bytes: row.bytes,
+          durationSec: row.duration_sec,
+          onDisk,
+          downloadPath: `/api/admin/media/files/${row.id}`,
+        });
+      }
+      await audit(ctx.db, {
+        actorId: req.user.id,
+        actorRole: req.user.role,
+        action: "media_export",
+        targetType: "media_assets",
+        ipHash: ctx.ipHash(req),
+        meta: { fileCount: files.length },
+      });
+      res.set("Cache-Control", "no-store");
+      res.json({ files });
+    }),
+  );
+
+  router.get(
+    "/media/files/:id",
+    gate(ctx, "backup.read"),
+    wrap(async (req, res) => {
+      if (!UUID.test(req.params.id)) throw new ApiError(404, "not_found");
+      const { rows } = await ctx.db.query(
+        "select id, storage_key, mime from media_assets where id = $1",
+        [req.params.id],
+      );
+      const row = rows[0];
+      const full = row ? localMediaFile(mediaDir, row.storage_key) : null;
+      if (!row || !full || !SAFE_MIME.test(row.mime)) throw new ApiError(404, "not_found");
+      try {
+        await fs.access(full);
+      } catch {
+        throw new ApiError(404, "not_found");
+      }
+      await audit(ctx.db, {
+        actorId: req.user.id,
+        actorRole: req.user.role,
+        action: "media_file_download",
+        targetType: "media_asset",
+        targetId: row.id,
+        ipHash: ctx.ipHash(req),
+      });
+      res.set("Cache-Control", "no-store");
+      res.set("Content-Disposition", `attachment; filename="media-${row.id}.bin"`);
+      res.type(row.mime);
+      res.sendFile(full);
     }),
   );
 
