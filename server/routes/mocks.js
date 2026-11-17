@@ -8,7 +8,7 @@
 import express from "express";
 import { ApiError } from "../core/errors.js";
 import { parseBody, v } from "../core/validate.js";
-import { scoreCriteria } from "../avalai.js";
+import { MOCK_PROMPT_VERSION, TYPED_SPEAKING_LABEL, scoreCriteria } from "../avalai.js";
 import { ensureBandTables, lookupBand, scaleRaw } from "../services/band-tables.js";
 import { publicItem } from "../services/content-bank.js";
 import { commitQuota, quotaStatus, releaseQuota, reserveQuota } from "../services/ai-quota.js";
@@ -190,7 +190,7 @@ export function mockRoutes(ctx, { score = scoreCriteria } = {}) {
         await releaseQuota(db, reservation.eventId, ctx.now());
         throw error;
       }
-      await commitQuota(db, reservation.eventId, { ref: attemptId, promptVersion: "mock-v1", now: ctx.now() });
+      await commitQuota(db, reservation.eventId, { ref: attemptId, promptVersion: MOCK_PROMPT_VERSION, now: ctx.now() });
       res.status(201).json({ attemptId, resumed: false });
     }),
   );
@@ -341,7 +341,12 @@ export function mockRoutes(ctx, { score = scoreCriteria } = {}) {
         for (const item of items.rows) {
           let scored = null;
           try {
-            scored = await score({ skill: req.params.skill, prompt: item.stem?.prompt ?? "", answer: item.answer?.value ?? "" });
+            scored = await score({
+              skill: req.params.skill,
+              prompt: item.stem?.prompt ?? "",
+              answer: item.answer?.value ?? "",
+              partNo: item.part_no,
+            });
           } catch (error) {
             if (error?.code !== "missing_ai") throw error;
           }
@@ -372,7 +377,7 @@ export function mockRoutes(ctx, { score = scoreCriteria } = {}) {
         max,
         parts: scoredParts.map((part) => ({ partNo: part.partNo, band: part.band, criteria: part.criteria })),
         scored: band != null,
-        label: "AI estimate, not an official IELTS score",
+        label: req.params.skill === "speaking" ? TYPED_SPEAKING_LABEL : "AI estimate, not an official IELTS score",
       });
     }),
   );

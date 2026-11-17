@@ -244,7 +244,7 @@ export function placementRoutes(ctx, { score = scoreCriteria } = {}) {
       );
       if (skillRow.rows[0]?.status !== "in_progress") throw new ApiError(409, "conflict");
       const answers = await ctx.db.query(
-        `select a.id, a.answer, i.answer_key, i.stem, i.skill
+        `select a.id, a.answer, i.answer_key, i.stem, i.skill, i.part_no
          from placement_answers a join content_items i on i.id = a.item_id
          where a.skill_attempt_id = $1`,
         [skillRow.rows[0].id],
@@ -287,6 +287,7 @@ export function placementRoutes(ctx, { score = scoreCriteria } = {}) {
             skill: req.params.skill,
             prompt: answer?.stem?.prompt ?? "",
             answer: answer?.answer?.value ?? "",
+            partNo: answer?.part_no ?? null,
           });
         } catch (error) {
           if (error?.code !== "missing_ai") throw error;

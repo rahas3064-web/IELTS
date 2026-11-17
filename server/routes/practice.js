@@ -10,7 +10,7 @@ import { commitQuota, releaseQuota, reserveQuota } from "../services/ai-quota.js
 import { practiceAccess, setIsOpen } from "../services/entitlements.js";
 import { ensureBandTables, lookupBand, scaleRaw } from "../services/band-tables.js";
 import { publicItem } from "../services/content-bank.js";
-import { scoreCriteria } from "../avalai.js";
+import { PRACTICE_PROMPT_VERSION, scoreCriteria } from "../avalai.js";
 import { wrap } from "./util.js";
 
 const answerSchema = v.object({
@@ -160,20 +160,28 @@ export function practiceRoutes(ctx, { score = scoreCriteria } = {}) {
       let band = null;
       let status = "scored";
       let criteria = null;
+      let label = null;
       if (attempt.skill === "listening" || attempt.skill === "reading") {
         await ensureBandTables(ctx.db);
         band = await lookupBand(ctx.db, attempt.skill, scaleRaw(raw, items.rows.length));
+        label = "AI estimate, not official";
       } else {
         const first = body.answers[0];
         const item = first ? byId.get(first.itemId) : null;
         try {
           const scored = reservation
-            ? await score({ skill: attempt.skill, prompt: item?.stem?.prompt ?? "", answer: first?.value ?? "" })
+            ? await score({
+              skill: attempt.skill,
+              prompt: item?.stem?.prompt ?? "",
+              answer: first?.value ?? "",
+              partNo: item?.part_no ?? null,
+            })
             : null;
           if (!scored) status = "scoring_failed";
           else {
             band = scored.band;
             criteria = scored.criteria;
+            label = scored.label;
           }
         } catch (error) {
           if (reservation) await releaseQuota(ctx.db, reservation.eventId, ctx.now());
@@ -182,7 +190,7 @@ export function practiceRoutes(ctx, { score = scoreCriteria } = {}) {
         }
         if (reservation) {
           if (status === "scored") {
-            await commitQuota(ctx.db, reservation.eventId, { ref: attempt.id, promptVersion: "practice-criteria-v1", now: ctx.now() });
+            await commitQuota(ctx.db, reservation.eventId, { ref: attempt.id, promptVersion: PRACTICE_PROMPT_VERSION, now: ctx.now() });
           } else {
             await releaseQuota(ctx.db, reservation.eventId, ctx.now());
           }
@@ -201,7 +209,7 @@ export function practiceRoutes(ctx, { score = scoreCriteria } = {}) {
         raw: objective ? raw : null,
         max: objective ? items.rows.length : null,
         criteria,
-        label: status === "scored" ? "AI estimate, not official" : null,
+        label: status === "scored" ? label : null,
       });
     }),
   );

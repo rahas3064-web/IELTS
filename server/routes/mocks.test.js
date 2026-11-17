@@ -108,6 +108,7 @@ describe("mock API", () => {
       expect(done.status).toBe(200);
       if (skill === "listening") expect(done.json).toMatchObject({ raw: 1, max: 2 });
       if (skill === "writing") expect(done.json.band).toBe(6);
+      if (skill === "speaking") expect(done.json.label).toBe("نسخه‌ی متنی؛ تلفظ سنجیده نشده");
     }
     const result = await device.request("GET", `/api/mock-attempts/${id}`);
     expect(result.json.status).toBe("completed");
