@@ -1,6 +1,7 @@
 import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { clientPage } from "./server/client-page.js";
 import { assertEnv, featureStatus, validateEnv } from "./server/core/env.js";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
@@ -84,15 +85,13 @@ app.use(createApi(db, apiOptions));
 if (isProd) {
   const dist = path.join(root, "dist");
   app.use(express.static(dist));
-  app.use((req, res, next) => {
-    if (req.method !== "GET" && req.method !== "HEAD") {
-      next();
-      return;
-    }
-    res.sendFile(path.join(dist, "index.html"), (error) => {
-      if (error) next(error);
-    });
-  });
+  app.use(clientPage({
+    sendIndex: (_req, res, next) => {
+      res.sendFile(path.join(dist, "index.html"), (error) => {
+        if (error) next(error);
+      });
+    },
+  }));
 } else {
   const { createServer } = await import("vite");
   const vite = await createServer({
@@ -100,6 +99,10 @@ if (isProd) {
     server: { middlewareMode: true },
     appType: "spa",
   });
+  app.use(clientPage({
+    assetPassthrough: true,
+    sendIndex: (_req, _res, next) => next(),
+  }));
   app.use(vite.middlewares);
 }
 

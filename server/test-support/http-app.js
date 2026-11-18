@@ -5,6 +5,7 @@
 import express from "express";
 import { createMigratedDb } from "../../db/test-helpers.js";
 import { createApi } from "../api.js";
+import { clientPage } from "../client-page.js";
 import { resetLimits } from "../rate-limit.js";
 
 export const TEST_SECRETS = Object.freeze({ SESSION_SECRET: "s".repeat(48), OTP_PEPPER: "p".repeat(48) });
@@ -41,7 +42,11 @@ export async function createTestApp({ config = {}, mediaDir, paymentProvider, as
     ? paymentProvider({ db, now: clock.now, config: resolvedConfig })
     : paymentProvider;
   app.use(createApi(db, { config: resolvedConfig, sms, now: clock.now, mediaDir, paymentProvider: provider, assistant, mocks }));
-  app.use((_req, res) => res.status(200).send("spa-fallback"));
+  app.use(clientPage({
+    sendIndex: (_req, res) => {
+      res.status(200).type("html").send("spa-fallback");
+    },
+  }));
 
   /** A device: remembers cookies between requests. */
   function client() {
