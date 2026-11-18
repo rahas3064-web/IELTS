@@ -8,6 +8,7 @@ import { parseBody, v } from "../core/validate.js";
 import { enforceLimit } from "../auth/limits.js";
 import { hashPassword, verifyPassword } from "../passwords.js";
 import { isUniqueViolation, wrap } from "./util.js";
+import { DELETE_CONFIRMATION, deleteOwnAccount } from "./account-delete.js";
 import { toPublicUser } from "./me-payload.js";
 
 const RECENT_OTP_MS = 10 * 60_000;
@@ -28,8 +29,12 @@ const reauthRequired = (reason) =>
     details: { reason },
   });
 
+const deleteSchema = v.object({
+  confirmation: v.oneOf([DELETE_CONFIRMATION]),
+});
+
 /** @param {ReturnType<import("../auth/context.js").createAuthContext>} ctx */
-export function accountRoutes(ctx) {
+export function accountRoutes(ctx, { mediaDir } = {}) {
   const router = express.Router();
   const { db, now } = ctx;
   const auth = ctx.requireUser();
@@ -100,6 +105,27 @@ export function accountRoutes(ctx) {
            set email_card_dismissed_at = coalesce(learner_profiles.email_card_dismissed_at, excluded.email_card_dismissed_at)`,
         [req.user.id, now()],
       );
+      res.json({ ok: true });
+    }),
+  );
+
+  router.post(
+    "/delete",
+    ctx.originGuard,
+    auth,
+    wrap(async (req, res) => {
+      parseBody(deleteSchema, req.body);
+      await deleteOwnAccount({
+        db,
+        sessions: ctx.sessions,
+        user: req.user,
+        secret: ctx.secret,
+        mediaDir,
+        now,
+        ipHash: ctx.ipHash(req),
+      });
+      ctx.clearSessionCookie(res);
+      ctx.clearAdminSessionCookie(res);
       res.json({ ok: true });
     }),
   );

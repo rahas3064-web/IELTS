@@ -41,16 +41,15 @@ export function createApi(db, options = {}) {
   router.use("/api/auth", authRoutes(auth));
   router.use("/api/admin/auth", adminAuthRoutes(auth));
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-  router.use("/api/admin", adminContentRoutes(auth, {
-    mediaDir: options.mediaDir ?? path.join(root, "data", "content-media"),
-  }));
+  const mediaDir = options.mediaDir ?? path.join(root, "data", "content-media");
+  router.use("/api/admin", adminContentRoutes(auth, { mediaDir }));
   router.use("/api/admin", adminGuardRoutes(auth));
   router.use("/api", learnerContentRoutes(auth));
-  router.use("/api", mediaRoutes(auth, { mediaDir: options.mediaDir ?? path.join(root, "data", "content-media") }));
+  router.use("/api", mediaRoutes(auth, { mediaDir }));
   router.use("/api", placementRoutes(auth));
   router.use("/api", practiceRoutes(auth));
   router.use("/api", mockRoutes(auth, options.mocks));
-  router.use("/api/account", accountRoutes(auth));
+  router.use("/api/account", accountRoutes(auth, { mediaDir }));
   router.use("/api", meRoutes(auth));
   router.use("/api", onboardingRoutes(auth));
   router.use("/api", frameRoutes(auth));
