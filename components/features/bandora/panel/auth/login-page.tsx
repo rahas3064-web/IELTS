@@ -6,6 +6,7 @@ import { PhoneStep } from "@/components/features/bandora/panel/auth/phone-step";
 import { OtpStep } from "@/components/features/bandora/panel/auth/otp-step";
 import { ProfileStep } from "@/components/features/bandora/panel/auth/profile-step";
 import { EmailLogin } from "@/components/features/bandora/panel/auth/email-login";
+import { LegalLinks } from "@/components/features/bandora/legal/document";
 
 type Step =
   | { name: "phone"; phone: string }
@@ -58,6 +59,7 @@ export function LoginPage() {
           />
         ) : null}
       </section>
+      <LegalLinks />
     </main>
   );
 }

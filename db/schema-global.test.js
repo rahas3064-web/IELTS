@@ -40,6 +40,7 @@ const NEW_TABLES = {
   "012_plan_entitlements": [],
   // RLS on existing public tables; no new tables and no policies.
   "013_enable_rls": [],
+  "014_legal_acceptances": ["legal_acceptances"],
 };
 const CORE = [
   "users", "otp_codes", "otp_locks", "sessions", "learner_profiles", "admin_credentials", "audit_logs",
@@ -59,7 +60,7 @@ beforeAll(async () => { db = await createMigratedDb(); });
 afterAll(async () => { await db.close(); });
 
 describe("migration set", () => {
-  it("has 001..013 in order", async () => {
+  it("has 001..014 in order", async () => {
     const versions = (await listMigrations(migrationsDir)).map((m) => m.version);
     expect(versions).toEqual(["001_core", ...Object.keys(NEW_TABLES)]);
   });
@@ -68,7 +69,7 @@ describe("migration set", () => {
     const result = await db.query("select table_name from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE'");
     const expected = [...CORE, "schema_migrations", ...Object.values(NEW_TABLES).flat()].sort();
     expect(result.rows.map((r) => r.table_name).sort()).toEqual(expected);
-    expect(expected.length).toBe(72);
+    expect(expected.length).toBe(73);
   });
 
   it.each(Object.entries(NEW_TABLES))("%s creates its tables", async (version, tables) => {

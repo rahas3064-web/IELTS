@@ -101,7 +101,13 @@ export async function createTestApp({ config = {}, mediaDir, paymentProvider, as
     const verified = await loginWithOtp(device, phone);
     if (!verified.json?.signupToken) throw new Error(`expected signupToken, got ${verified.text}`);
     return device.request("POST", "/api/auth/register", {
-      body: { signupToken: verified.json.signupToken, firstName, lastName, ...(referralCode ? { referralCode } : {}) },
+      body: {
+        signupToken: verified.json.signupToken,
+        firstName,
+        lastName,
+        acceptedLegal: true,
+        ...(referralCode ? { referralCode } : {}),
+      },
     });
   }
 

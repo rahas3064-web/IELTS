@@ -119,7 +119,10 @@ if (shouldStartJobs(config)) {
   const { createJobRunner } = await import("./server/core/jobs.js");
   const { createSmsSender } = await import("./server/auth/sms.js");
   jobs = createJobRunner({ db });
-  registerJobs(jobs, { sms: createSmsSender({ env: config, db }) });
+  registerJobs(jobs, {
+    sms: createSmsSender({ env: config, db }),
+    mediaDir: path.join(root, "data", "content-media"),
+  });
   jobs.start();
   console.info(`jobs started: ${jobs.list().map((job) => job.name).join(", ")}`);
 }

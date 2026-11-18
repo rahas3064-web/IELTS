@@ -1,0 +1,45 @@
+.bd-legal {
+  display: grid;
+  gap: 20px;
+  width: min(100%, 720px);
+  margin-inline: auto;
+  padding: 32px 20px 48px;
+}
+
+.bd-legal h1 {
+  margin: 0;
+  color: var(--bd-ink);
+  font-size: 1.6rem;
+  line-height: 1.5;
+}
+
+.bd-legal p {
+  margin: 0;
+  color: var(--bd-body);
+  font-size: 1rem;
+  line-height: 1.9;
+}
+
+.bd-legal__meta {
+  color: var(--bd-muted);
+  font-size: 0.9rem;
+}
+
+.bd-legal__email {
+  direction: ltr;
+  unicode-bidi: isolate;
+  color: var(--bd-navy);
+}
+
+.bd-legal-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  justify-content: center;
+  padding: 8px 16px 20px;
+}
+
+.bd-legal-links a {
+  color: var(--bd-muted);
+  font-size: 0.85rem;
+}

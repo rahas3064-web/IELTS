@@ -61,7 +61,7 @@ describe("no HTTP route creates or promotes an admin", () => {
     const device = t.client();
     const verified = await t.loginWithOtp(device, phone);
     const res = await device.request("POST", "/api/auth/register", {
-      body: { signupToken: verified.json.signupToken, firstName: "A", lastName: "B", role: "super_admin", status: "active" },
+      body: { signupToken: verified.json.signupToken, firstName: "A", lastName: "B", acceptedLegal: true, role: "super_admin", status: "active" },
     });
     expect(res.status).toBe(201);
     expect(res.json.user.role).toBe("learner");

@@ -18,6 +18,9 @@ import { AuthLayout } from "@/src/auth/auth-layout";
 import { AdminHome } from "@/components/features/bandora/panel/admin/admin-home";
 import { AdminLoginPage } from "@/components/features/bandora/panel/admin/admin-login-page";
 import { GuestOnly, RequireAuth } from "@/src/auth/guards";
+import { PrivacyPage } from "@/components/features/bandora/legal/privacy";
+import { RefundPage } from "@/components/features/bandora/legal/refund";
+import { TermsPage } from "@/components/features/bandora/legal/terms";
 
 function NotFound() {
   return (
@@ -54,6 +57,9 @@ export function AppRoutes() {
           }
         />
         <Route path="/signup" element={<Navigate to="/login" replace />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/refund" element={<RefundPage />} />
         <Route
           path="/app/onboarding"
           element={

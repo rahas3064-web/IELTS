@@ -30,9 +30,10 @@ describe("registerJobs", () => {
     const runner = createJobRunner({ db, logger: silent() });
     registerJobs(runner, { sms, logger: silent() });
     const jobs = Object.fromEntries(runner.list().map((job) => [job.name, job]));
-    expect(Object.keys(jobs).sort()).toEqual(["otp-cleanup", "study-reminders"]);
+    expect(Object.keys(jobs).sort()).toEqual(["otp-cleanup", "speaking-audio-cleanup", "study-reminders"]);
     expect(jobs["study-reminders"]).toMatchObject({ schedule: JOB_SCHEDULES["study-reminders"].schedule, timezone: "Asia/Tehran" });
     expect(jobs["otp-cleanup"]).toMatchObject({ schedule: JOB_SCHEDULES["otp-cleanup"].schedule, timezone: "Asia/Tehran" });
+    expect(jobs["speaking-audio-cleanup"]).toMatchObject({ schedule: JOB_SCHEDULES["speaking-audio-cleanup"].schedule, timezone: "Asia/Tehran" });
   });
 
   it("runs otp-cleanup through the runner and logs the run", async () => {

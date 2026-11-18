@@ -37,6 +37,7 @@ export const JOB_SCHEDULES = Object.freeze({
   "payment-reconcile": { schedule: "*/5 * * * *", description: "Every 5 min - re-verify pending Bale payments (S11)" },
   "account-purge": { schedule: "0 3 * * *", description: "Daily 03:00 - purge accounts 14 days after deletion request (S10)" },
   "otp-cleanup": { schedule: "0 * * * *", description: "Hourly - delete expired OTP rows/locks" },
+  "speaking-audio-cleanup": { schedule: "30 3 * * *", description: "Daily 03:30 - delete speaking recordings older than 90 days" },
 });
 
 const MAX_ERROR_LENGTH = 2000;

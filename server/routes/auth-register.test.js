@@ -10,7 +10,9 @@ afterAll(() => t.close());
 beforeEach(() => t.resetLimits());
 
 const register = (device, signupToken, extra = {}) =>
-  device.request("POST", "/api/auth/register", { body: { signupToken, firstName: "Sara", lastName: "Ahmadi", ...extra } });
+  device.request("POST", "/api/auth/register", {
+    body: { signupToken, firstName: "Sara", lastName: "Ahmadi", acceptedLegal: true, ...extra },
+  });
 
 async function verifiedToken(phone) {
   const res = await t.loginWithOtp(t.client(), phone);
@@ -107,6 +109,30 @@ describe("POST /api/auth/register", () => {
     const res = await t.signUp(t.client(), freshPhone(), { referralCode: "OLDCODE1" });
     expect(res.status).toBe(201);
     expect(res.json.referral).toEqual({ accepted: false });
+  });
+
+  it("refuses registration without the legal acceptance and stores the current version with it", async () => {
+    const phone = freshPhone();
+    const device = t.client();
+    const token = (await t.loginWithOtp(device, phone)).json.signupToken;
+    const refused = await device.request("POST", "/api/auth/register", {
+      body: { signupToken: token, firstName: "Sara", lastName: "Ahmadi", acceptedLegal: false },
+    });
+    expect(refused.status).toBe(400);
+    expect(refused.json.error.code).toBe("validation_failed");
+    expect((await t.db.query("select 1 from users where phone = $1", [phone])).rows).toHaveLength(0);
+
+    const created = await register(device, token);
+    expect(created.status).toBe(201);
+    const { rows } = await t.db.query(
+      "select document, version from legal_acceptances where user_id = $1 order by document",
+      [created.json.user.id],
+    );
+    expect(rows).toEqual([
+      { document: "privacy", version: "legal-2026-11-18" },
+      { document: "refund", version: "legal-2026-11-18" },
+      { document: "terms", version: "legal-2026-11-18" },
+    ]);
   });
 
   it("writes an audit row with a masked phone and no token", async () => {

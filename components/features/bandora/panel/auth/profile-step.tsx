@@ -5,6 +5,7 @@ import { ApiClientError, api } from "@/src/lib/api-client";
 import { errorText, fieldErrorText } from "@/src/lib/error-message";
 import { useAuth } from "@/src/auth/auth-provider";
 import { useT } from "@/src/i18n";
+import Link from "@/components/link";
 
 type RegisterResult = { user: unknown; referral: { accepted: boolean } | null };
 type FieldName = "firstName" | "lastName" | "referralCode";
@@ -34,6 +35,7 @@ export function ProfileStep({ signupToken, initialReferral, onExpired }: Profile
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [referral, setReferral] = useState(initialReferral);
+  const [accepted, setAccepted] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -46,14 +48,15 @@ export function ProfileStep({ signupToken, initialReferral, onExpired }: Profile
     if (firstName.trim() === "") local.firstName = t("login.profile.firstRequired");
     if (lastName.trim() === "") local.lastName = t("login.profile.lastRequired");
     setErrors(local);
-    setFormError(null);
-    if (Object.keys(local).length > 0) return;
+    setFormError(accepted ? null : t("login.profile.acceptRequired"));
+    if (Object.keys(local).length > 0 || !accepted) return;
     setBusy(true);
     try {
       const body = {
         signupToken,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
+        acceptedLegal: true,
         ...(referral.trim() ? { referralCode: referral.trim() } : {}),
       };
       const result = await api.post<RegisterResult>("/api/auth/register", body);
@@ -123,6 +126,19 @@ export function ProfileStep({ signupToken, initialReferral, onExpired }: Profile
           onChange={(event) => setReferral(event.target.value)}
         />
         <FieldError id={`${ids.ref}-e`} message={errors.referralCode} />
+      </div>
+      <div className="bd-field">
+        <label className="bd-check">
+          <input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} />
+          <span>
+            {t("login.profile.accept")}{" "}
+            <Link href="/terms">{t("legal.terms.title")}</Link>
+            {" · "}
+            <Link href="/privacy">{t("legal.privacy.title")}</Link>
+            {" · "}
+            <Link href="/refund">{t("legal.refund.title")}</Link>
+          </span>
+        </label>
       </div>
       <button type="submit" className="bd-btn bd-btn--solid bd-btn--block" disabled={busy}>
         {busy ? t("common.saving") : t("login.profile.submit")}

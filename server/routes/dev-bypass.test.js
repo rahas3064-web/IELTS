@@ -76,7 +76,7 @@ describe("switch on", () => {
     expect(first.json.needsProfile).toBe(true);
     expect(device.jar.has("bd_session")).toBe(false);
     const registered = await device.request("POST", "/api/auth/register", {
-      body: { signupToken: first.json.signupToken, firstName: "Mina", lastName: "Karimi" },
+      body: { signupToken: first.json.signupToken, firstName: "Mina", lastName: "Karimi", acceptedLegal: true },
     });
     expect(registered.status).toBe(201);
     expect(device.jar.has("bd_session")).toBe(true);

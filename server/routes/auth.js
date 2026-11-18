@@ -30,6 +30,7 @@ const registerSchema = v.object({
   firstName: v.string({ min: 1, max: 60 }),
   lastName: v.string({ min: 1, max: 60 }),
   referralCode: v.optional(v.string({ max: 64 })),
+  acceptedLegal: v.oneOf([true]),
 });
 const passwordLoginSchema = v.object({
   email: v.string({ min: 1, max: 254, transform: (s) => s.toLowerCase() }),

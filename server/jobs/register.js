@@ -2,6 +2,7 @@
 // Wires the job handlers into the job runner (spec 4.2). server.js starts the
 // scheduler only when shouldStartJobs() says so; the schedules live in JOB_SCHEDULES.
 import { runOtpCleanup } from "./otp-cleanup.js";
+import { runSpeakingAudioCleanup } from "./speaking-audio-cleanup.js";
 import { runStudyReminders } from "./study-reminders.js";
 
 /**
@@ -14,10 +15,13 @@ export const shouldStartJobs = (config) => config.NODE_ENV === "production" || S
  * @param {{register: Function}} runner from createJobRunner()
  * @param {{sms: {sendTemplate: Function}, logger?: any}} deps
  */
-export function registerJobs(runner, { sms, logger = console }) {
+export function registerJobs(runner, { sms, logger = console, mediaDir }) {
   runner.register("study-reminders", {
     handler: ({ db, now }) => runStudyReminders({ db, now, sms, logger }),
   });
   runner.register("otp-cleanup", { handler: ({ db, now }) => runOtpCleanup({ db, now }) });
+  runner.register("speaking-audio-cleanup", {
+    handler: ({ db, now }) => runSpeakingAudioCleanup({ db, now, mediaDir }),
+  });
   return runner;
 }

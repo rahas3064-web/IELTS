@@ -1,5 +1,6 @@
 // Learner registration: user row, optional referral attribution, session and audit
 // row are committed together or not at all.
+import { LEGAL_DOCUMENTS, LEGAL_VERSION } from "../../lib/legal-version.js";
 import { audit } from "../core/audit.js";
 import { clientAddress } from "../rate-limit.js";
 import { toPublicUser } from "./me-payload.js";
@@ -30,6 +31,12 @@ export async function registerLearner(ctx, req, { phone, firstName, lastName, re
       [phone, at, firstName, lastName],
     );
     const row = rows[0];
+    for (const document of LEGAL_DOCUMENTS) {
+      await tx.query(
+        "insert into legal_acceptances (user_id, document, version, accepted_at) values ($1, $2, $3, $4)",
+        [row.id, document, LEGAL_VERSION, at],
+      );
+    }
 
     let referral = null;
     if (referralCode !== undefined && referralCode.trim() !== "") {

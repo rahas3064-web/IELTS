@@ -8,6 +8,7 @@ import { Header } from "@/components/features/bandora/panel/shell/header";
 import { MoreSheet } from "@/components/features/bandora/panel/shell/more-sheet";
 import { pageTitleKey } from "@/components/features/bandora/panel/shell/nav-items";
 import { Sidebar } from "@/components/features/bandora/panel/shell/sidebar";
+import { LegalLinks } from "@/components/features/bandora/legal/document";
 
 function Frame() {
   const { t } = useT();
@@ -34,6 +35,7 @@ function Frame() {
         <Sidebar />
         <main id="content" className="bd-main" tabIndex={-1}>
           <Outlet />
+          <LegalLinks />
         </main>
       </div>
       <EmailCard />

@@ -73,6 +73,7 @@ describe("jobs", () => {
         "payment-reconcile": "*/5 * * * *",
         "account-purge": "0 3 * * *",
         "otp-cleanup": "0 * * * *",
+        "speaking-audio-cleanup": "30 3 * * *",
       });
       for (const { schedule } of Object.values(JOB_SCHEDULES)) {
         expect(cron.validate(schedule)).toBe(true);

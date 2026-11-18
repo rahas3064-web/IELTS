@@ -155,6 +155,18 @@
   background: var(--bd-navy);
 }
 
+.bd-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--bd-body);
+  line-height: 1.7;
+}
+
+.bd-check input {
+  margin-block-start: 0.35rem;
+}
+
 .bd-list {
   margin: 0;
   padding-inline-start: 1.2em;
