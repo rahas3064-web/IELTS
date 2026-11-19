@@ -76,12 +76,40 @@ export async function reserveQuota(db, { userId, planKey, quotaKey, operation, n
  * @param {{query: Function}} db @param {string} eventId
  * @param {{tokensIn?: number, tokensOut?: number, model?: string|null, promptVersion?: string|null, ref?: string|null, now: Date}} info
  */
-export async function commitQuota(db, eventId, { tokensIn = 0, tokensOut = 0, model = null, promptVersion = null, ref = null, now }) {
+export async function commitQuota(db, eventId, { tokensIn = 0, tokensOut = 0, costRial = 0, model = null, promptVersion = null, ref = null, now }) {
   await db.query(
     `update ai_usage_events
-     set status = 'committed', settled_at = $2, tokens_in = $3, tokens_out = $4, model = $5, prompt_version = $6, ref = $7
+     set status = 'committed', settled_at = $2, tokens_in = $3, tokens_out = $4, cost_rial = $5,
+         model = $6, prompt_version = $7, ref = $8
      where id = $1 and status = 'reserved'`,
-    [eventId, now, Math.max(0, Math.round(tokensIn) || 0), Math.max(0, Math.round(tokensOut) || 0), model, promptVersion, ref],
+    [
+      eventId, now,
+      Math.max(0, Math.round(tokensIn) || 0),
+      Math.max(0, Math.round(tokensOut) || 0),
+      Math.max(0, Math.round(costRial) || 0),
+      model, promptVersion, ref,
+    ],
+  );
+}
+
+/**
+ * One model call that is not itself a quota unit (transcription, or a pronunciation retry).
+ * The row is committed immediately so the token and rial columns are the cost log.
+ */
+export async function recordModelCall(db, {
+  userId, operation, tokensIn = 0, tokensOut = 0, costRial = 0, model = null, promptVersion = null, ref = null, now,
+}) {
+  await db.query(
+    `insert into ai_usage_events
+       (user_id, operation, status, tokens_in, tokens_out, cost_rial, model, prompt_version, ref, settled_at)
+     values ($1, $2, 'committed', $3, $4, $5, $6, $7, $8, $9)`,
+    [
+      userId, operation,
+      Math.max(0, Math.round(tokensIn) || 0),
+      Math.max(0, Math.round(tokensOut) || 0),
+      Math.max(0, Math.round(costRial) || 0),
+      model, promptVersion, ref, now,
+    ],
   );
 }
 

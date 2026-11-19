@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ENV_SPEC, assertEnv, featureStatus, redactEnv, validateEnv } from "./env.js";
+import { ENV_SPEC, assertEnv, featureStatus, redactEnv, smsOtpConfigured, validateEnv } from "./env.js";
 
 const LONG = "x".repeat(32);
 const prodEnv = {
@@ -16,7 +16,7 @@ describe("ENV_SPEC", () => {
     for (const n of [
       "NODE_ENV", "PORT", "APP_BASE_URL", "DATABASE_URL", "SESSION_SECRET", "OTP_PEPPER", "TZ",
       "AVALAI_API_KEY", "AVALAI_BASE_URL", "AVALAI_MODEL", "AVALAI_SCORING_MODEL", "AVALAI_STT_MODEL",
-      "AI_COST_PER_1K_INPUT_RIAL", "AI_COST_PER_1K_OUTPUT_RIAL",
+      "AVALAI_SPEAKING_AUDIO_MODEL", "AI_COST_PER_1K_INPUT_RIAL", "AI_COST_PER_1K_OUTPUT_RIAL", "AI_USD_TO_RIAL",
       "SMSIR_API_KEY", "SMSIR_LINE_NUMBER", "SMSIR_TEMPLATE_OTP", "SMSIR_TEMPLATE_STUDY_REMINDER",
       "SMSIR_TEMPLATE_RENEWAL_REMINDER", "SMS_DEV_CONSOLE",
       "BALE_BOT_TOKEN", "BALE_BOT_USERNAME", "BALE_PAYMENT_PROVIDER_TOKEN", "BALE_PAYMENT_MODE",
@@ -47,7 +47,8 @@ describe("validateEnv (development)", () => {
       PORT: 3000,
       TZ: "Asia/Tehran",
       AVALAI_BASE_URL: "https://api.avalai.ir/v1",
-      AVALAI_STT_MODEL: "whisper-1",
+      AVALAI_STT_MODEL: "gpt-4o-mini-transcribe",
+      AVALAI_SPEAKING_AUDIO_MODEL: "gemini-2.5-flash-lite",
       BALE_PAYMENT_MODE: "test",
       BALE_PAYMENT_FLOW: "bot_chat",
       SMS_DEV_CONSOLE: true,
@@ -203,5 +204,22 @@ describe("featureStatus", () => {
   it("sms is false in production without SMS.ir credentials", () => {
     const { config } = validateEnv({ ...prodEnv, SMS_DEV_CONSOLE: "false" });
     expect(featureStatus(config).sms).toBe(false);
+  });
+});
+
+describe("smsOtpConfigured", () => {
+  it("is true only when all three SMS.ir variables are set", () => {
+    expect(smsOtpConfigured(validateEnv({}).config)).toBe(false);
+    expect(smsOtpConfigured(validateEnv({ SMS_DEV_CONSOLE: "true" }).config)).toBe(false);
+    expect(smsOtpConfigured(validateEnv({ ...prodEnv, SMS_DEV_CONSOLE: "false" }).config)).toBe(false);
+    expect(smsOtpConfigured(validateEnv({
+      SMSIR_API_KEY: "a", SMSIR_LINE_NUMBER: "1", SMSIR_TEMPLATE_OTP: "  ",
+    }).config)).toBe(false);
+    expect(smsOtpConfigured(validateEnv({
+      SMSIR_API_KEY: "a", SMSIR_LINE_NUMBER: "1",
+    }).config)).toBe(false);
+    expect(smsOtpConfigured(validateEnv({
+      SMSIR_API_KEY: "a", SMSIR_LINE_NUMBER: "1", SMSIR_TEMPLATE_OTP: "2",
+    }).config)).toBe(true);
   });
 });

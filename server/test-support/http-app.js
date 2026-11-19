@@ -16,7 +16,7 @@ export const TEST_SECRETS = Object.freeze({ SESSION_SECRET: "s".repeat(48), OTP_
  *          assistant?: {reply?: Function, env?: Record<string, any>}, mocks?: {score?: Function},
  *          speakingStatfs?: Function, speakingUploadMax?: number}} [options]
  */
-export async function createTestApp({ config = {}, mediaDir, paymentProvider, assistant, mocks, speakingStatfs, speakingUploadMax } = {}) {
+export async function createTestApp({ config = {}, mediaDir, paymentProvider, assistant, mocks, speakingStatfs, speakingUploadMax, speakingScore } = {}) {
   const db = await createMigratedDb();
   let time = Date.now();
   const clock = {
@@ -42,7 +42,7 @@ export async function createTestApp({ config = {}, mediaDir, paymentProvider, as
   const provider = typeof paymentProvider === "function"
     ? paymentProvider({ db, now: clock.now, config: resolvedConfig })
     : paymentProvider;
-  app.use(createApi(db, { config: resolvedConfig, sms, now: clock.now, mediaDir, paymentProvider: provider, assistant, mocks, speakingStatfs, speakingUploadMax }));
+  app.use(createApi(db, { config: resolvedConfig, sms, now: clock.now, mediaDir, paymentProvider: provider, assistant, mocks, speakingStatfs, speakingUploadMax, speakingScore }));
   app.use(clientPage({
     sendIndex: (_req, res) => {
       res.status(200).type("html").send("spa-fallback");

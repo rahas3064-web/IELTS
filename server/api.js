@@ -53,6 +53,7 @@ export function createApi(db, options = {}) {
     mediaDir,
     statfs: options.speakingStatfs,
     uploadMax: options.speakingUploadMax,
+    ...options.speakingScore,
   }));
   router.use("/api", mockRoutes(auth, options.mocks));
   router.use("/api/account", accountRoutes(auth, { mediaDir }));

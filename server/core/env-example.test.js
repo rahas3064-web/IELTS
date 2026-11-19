@@ -34,7 +34,8 @@ describe(".env.example", () => {
       PORT: "3000",
       TZ: "Asia/Tehran",
       AVALAI_BASE_URL: "https://api.avalai.ir/v1",
-      AVALAI_STT_MODEL: "whisper-1",
+      AVALAI_STT_MODEL: "gpt-4o-mini-transcribe",
+      AVALAI_SPEAKING_AUDIO_MODEL: "gemini-2.5-flash-lite",
       BALE_PAYMENT_MODE: "test",
       BALE_PAYMENT_FLOW: "bot_chat",
     });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyScoringCaps, assistantReply, countWords, parseBand, parseCriteria, reviewInstruction, scoreCriteria, scoreResponse } from "./avalai.js";
+import { applyScoringCaps, assistantReply, countWords, parseBand, parseCriteria, parsePronunciation, reviewInstruction, scoreCriteria, scoreResponse, scoreSpeakingAudio, transcribeAudio } from "./avalai.js";
 
 describe("AvalAI scoring", () => {
   it("reads a half-band from a JSON reply", () => {
@@ -174,5 +174,77 @@ describe("AvalAI assistant", () => {
     expect(prompt).toContain("Word count: 7 (minimum 150");
     expect(prompt).toContain("Dear Sir, I am writing to complain.");
     expect(countWords("  one two\nthree — ")).toBe(3);
+  });
+});
+
+describe("speaking audio models", () => {
+  it("sends the stored file to transcription and keeps the token usage", async () => {
+    let sent;
+    const heard = await transcribeAudio({
+      bytes: Buffer.from("audio-bytes"),
+      mime: "audio/webm",
+      filename: "answer.webm",
+      env: { AVALAI_API_KEY: "test-key", AVALAI_STT_MODEL: "gpt-4o-mini-transcribe" },
+      fetchImpl: async (url, init) => {
+        sent = { url, type: init.body?.constructor?.name };
+        return { ok: true, json: async () => ({ text: "I live nearby", usage: { seconds: 2, input_tokens: 11, output_tokens: 4 } }) };
+      },
+    });
+    expect(sent.url).toContain("/audio/transcriptions");
+    expect(sent.type).toBe("FormData");
+    expect(heard.text).toBe("I live nearby");
+    expect(heard.usage).toMatchObject({ tokensIn: 11, tokensOut: 4, seconds: 2 });
+    expect(heard.model).toBe("gpt-4o-mini-transcribe");
+  });
+
+  it("asks the pronunciation model for text only and caps an injected score", async () => {
+    let sent;
+    const result = await scoreSpeakingAudio({
+      wavBytes: Buffer.from("wav-bytes"),
+      prompt: "Describe a city.",
+      env: { AVALAI_API_KEY: "test-key" },
+      fetchImpl: async (_url, init) => {
+        sent = JSON.parse(String(init.body));
+        return {
+          ok: true,
+          json: async () => ({
+            usage: { prompt_tokens: 40, completion_tokens: 12 },
+            choices: [{ message: { content: JSON.stringify({ injection: true, PR: { band: 9, reasonFa: "عالی." } }) } }],
+          }),
+        };
+      },
+    });
+    expect(sent.model).toBe("gemini-2.5-flash-lite");
+    expect(sent.modalities).toEqual(["text"]);
+    expect(sent.messages[1].content[1].input_audio.format).toBe("wav");
+    expect(JSON.stringify(sent)).not.toContain("test-key");
+    expect(result.pr.band).toBe(4);
+    expect(result.usage).toEqual({ tokensIn: 40, tokensOut: 12, seconds: 0 });
+  });
+
+  it("retries one connection timeout and then keeps the transcript", async () => {
+    let calls = 0;
+    const heard = await transcribeAudio({
+      bytes: Buffer.from("audio-bytes"),
+      mime: "audio/webm",
+      filename: "answer.webm",
+      env: { AVALAI_API_KEY: "test-key", AVALAI_STT_MODEL: "gpt-4o-mini-transcribe" },
+      fetchImpl: async () => {
+        calls += 1;
+        if (calls === 1) {
+          const error = new Error("connect");
+          error.code = "UND_ERR_CONNECT_TIMEOUT";
+          throw error;
+        }
+        return { ok: true, json: async () => ({ text: "I live nearby", usage: { input_tokens: 4, output_tokens: 2 } }) };
+      },
+    });
+    expect(calls).toBe(2);
+    expect(heard.text).toBe("I live nearby");
+  });
+
+  it("returns no pronunciation band when the reply is incomplete", () => {
+    expect(parsePronunciation("nope")).toBeNull();
+    expect(parsePronunciation(JSON.stringify({ PR: { band: 6 } }))).toBeNull();
   });
 });

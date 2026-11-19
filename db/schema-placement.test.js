@@ -187,6 +187,16 @@ describe("speaking_recordings", () => {
     await expectViolation(recording({ words: JSON.stringify({ not: "array" }) }), /speaking_recordings_words_array/);
     const first = await recording();
     await expectViolation(recording({ storage_key: first.storage_key }), /speaking_recordings_storage_key_key/);
+    await expectViolation(recording({
+      score_state: "scored",
+      criteria: JSON.stringify({ FC: { band: 6, reasonFa: "روان است." } }),
+    }), /speaking_recordings_band_matches_state/);
+    await expectViolation(recording({ score_state: "partial" }), /speaking_recordings_state_has_criteria/);
+    await expectViolation(recording({
+      score_state: "partial",
+      criteria: JSON.stringify({ FC: { band: 6, reasonFa: "روان است." } }),
+      pronunciation_tries: 5,
+    }), /speaking_recordings_tries_valid/);
   });
 
   it("is removed with the user but restricts deleting its question item", async () => {

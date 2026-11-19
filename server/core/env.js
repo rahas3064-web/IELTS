@@ -31,9 +31,11 @@ export const ENV_SPEC = Object.freeze([
   v("AVALAI_BASE_URL", { def: "https://api.avalai.ir/v1" }),
   v("AVALAI_MODEL"),
   v("AVALAI_SCORING_MODEL"),
-  v("AVALAI_STT_MODEL", { def: "whisper-1" }),
+  v("AVALAI_STT_MODEL", { def: "gpt-4o-mini-transcribe" }),
+  v("AVALAI_SPEAKING_AUDIO_MODEL", { def: "gemini-2.5-flash-lite" }),
   v("AI_COST_PER_1K_INPUT_RIAL"),
   v("AI_COST_PER_1K_OUTPUT_RIAL"),
+  v("AI_USD_TO_RIAL"),
   // SMS.ir
   v("SMSIR_API_KEY", { secret: true }),
   v("SMSIR_LINE_NUMBER"),
@@ -158,6 +160,15 @@ export function redactEnv(env = {}) {
     out[spec.name] = spec.secret ? "***" : value;
   }
   return out;
+}
+
+/** Live SMS.ir OTP is on only when the three launch variables are set. Console mode does not count. */
+export function smsOtpConfigured(config) {
+  const has = (name) => {
+    const value = config?.[name];
+    return typeof value === "string" ? value.trim() !== "" : Boolean(value);
+  };
+  return has("SMSIR_API_KEY") && has("SMSIR_LINE_NUMBER") && has("SMSIR_TEMPLATE_OTP");
 }
 
 /**

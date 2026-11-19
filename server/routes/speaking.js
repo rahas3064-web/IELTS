@@ -13,6 +13,10 @@ import {
   storedMime,
   uploadBlocked,
 } from "../speaking-storage.js";
+import { scoreCriteria, scoreSpeakingAudio, transcribeAudio } from "../avalai.js";
+import { practiceAccess } from "../services/entitlements.js";
+import { scoreStoredRecording } from "../speaking-score.js";
+import { convertToWav } from "../speaking-wav.js";
 import { wrap } from "./util.js";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -38,7 +42,16 @@ async function ownsPracticeAttempt(db, userId, attemptId, itemId) {
  * @param {ReturnType<import("../auth/context.js").createAuthContext>} ctx
  * @param {{mediaDir: string, statfs?: Function, uploadMax?: number}} options
  */
-export function speakingRoutes(ctx, { mediaDir, statfs = fs.statfs, uploadMax = 30 }) {
+export function speakingRoutes(ctx, {
+  mediaDir,
+  statfs = fs.statfs,
+  uploadMax = 30,
+  transcribe = transcribeAudio,
+  scoreText = scoreCriteria,
+  scoreAudio = scoreSpeakingAudio,
+  toWav = convertToWav,
+  env = process.env,
+} = {}) {
   const router = express.Router();
   const auth = ctx.requireUser();
 
@@ -105,6 +118,58 @@ export function speakingRoutes(ctx, { mediaDir, statfs = fs.statfs, uploadMax = 
         await fs.unlink(full).catch(() => {});
         throw error;
       }
+    }),
+  );
+
+  router.post(
+    "/recordings/:id/score",
+    ctx.originGuard,
+    auth,
+    wrap(async (req, res) => {
+      if (!UUID.test(String(req.params.id || ""))) throw new ApiError(400, "validation_failed");
+      const { rows } = await ctx.db.query(
+        `select r.id, r.user_id, r.storage_key, r.mime, r.duration_sec, r.transcript,
+                r.score_state, r.criteria, r.band, r.pronunciation_tries, r.injection, i.stem
+         from speaking_recordings r
+         join content_items i on i.id = r.question_item_id
+         where r.id = $1 and r.user_id = $2`,
+        [req.params.id, req.user.id],
+      );
+      const row = rows[0];
+      if (!row) throw new ApiError(404, "not_found");
+      const filePath = speakingAudioPath(mediaDir, row.storage_key);
+      if (!filePath) throw new ApiError(404, "not_found");
+      const access = await practiceAccess(ctx.db, req.user.id, ctx.now());
+      let outcome;
+      try {
+        outcome = await scoreStoredRecording({
+          db: ctx.db,
+          now: ctx.now,
+          userId: req.user.id,
+          planKey: access.subscription.plan,
+          row,
+          filePath,
+          env,
+          transcribe,
+          scoreText,
+          scoreAudio,
+          toWav,
+        });
+      } catch (error) {
+        if (error?.status === 402) throw error;
+        if (error?.code === "missing_ai") {
+          res.json({ status: "scoring_failed", band: null, criteria: null, pronunciationPending: false, label: null });
+          return;
+        }
+        throw error;
+      }
+      if (outcome.http === 409) {
+        throw new ApiError(409, "validation_failed", {
+          fa: "تلاش دوبارهٔ تلفظ برای این فایل تمام شد.",
+          en: "Pronunciation retries for this recording are used up.",
+        });
+      }
+      res.status(outcome.http).json(outcome.body);
     }),
   );
 
