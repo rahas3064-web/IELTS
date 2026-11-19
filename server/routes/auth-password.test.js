@@ -128,6 +128,35 @@ describe("POST /api/auth/password/login", () => {
     expect((await passwordLogin(t.client(), {})).status).toBe(400);
   });
 
+  it("accepts the phone with the same generic failure and the same per-identifier limit", async () => {
+    const phone = freshPhone();
+    const device = t.client();
+    const email = freshEmail();
+    const created = await device.request("POST", "/api/auth/password/register", {
+      body: {
+        firstName: "Sara", lastName: "Ahmadi", phone, email, password: "right password 1", acceptedLegal: true,
+      },
+    });
+    expect(created.status).toBe(201);
+    const login = await passwordLogin(t.client(), { phone, password: "right password 1" });
+    expect(login.status).toBe(200);
+    expect(login.json.user.id).toBe(created.json.user.id);
+    expect(login.json.user.phoneVerified).toBe(false);
+
+    const wrong = await passwordLogin(t.client(), { phone, password: "wrong password 1" });
+    const unknown = await passwordLogin(t.client(), { phone: freshPhone(), password: "wrong password 1" });
+    const noPassword = await learner();
+    const missingHash = await passwordLogin(t.client(), { phone: noPassword.phone, password: "wrong password 1" });
+    expect(wrong.status).toBe(401);
+    expect(wrong.json).toEqual(unknown.json);
+    expect(wrong.json).toEqual(missingHash.json);
+    expect(wrong.text).not.toMatch(/not found|no account|doesn't exist|does not exist|وجود نداره/i);
+
+    let last;
+    for (let i = 0; i < 4; i += 1) last = await passwordLogin(t.client(), { phone, password: "wrong password 1" });
+    expect(last.status).toBe(429);
+  });
+
   it("rate-limits attempts per email (429 with retryAfter)", async () => {
     const email = freshEmail();
     let last;

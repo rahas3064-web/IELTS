@@ -28,7 +28,7 @@ describe("GET /api/me", () => {
     expect(res.status).toBe(200);
     expect(res.json).toEqual({
       user: {
-        id: user.id, firstName: "Sara", lastName: "Ahmadi", phone, email: null, hasPassword: false,
+        id: user.id, firstName: "Sara", lastName: "Ahmadi", phone, email: null, hasPassword: false, phoneVerified: true,
         role: "learner", locale: "fa", status: "active",
       },
       profile: null,

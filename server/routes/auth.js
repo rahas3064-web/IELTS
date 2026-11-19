@@ -18,7 +18,8 @@ const SIGNUP_TOKEN_TTL_MS = 10 * 60_000;
 const PASSWORD_LOGIN_EMAIL_LIMIT = { max: 5, windowSec: 900 };
 const PASSWORD_LOGIN_IP_LIMIT = { max: 30, windowSec: 900 };
 const DEV_BYPASS_IP_LIMIT = { max: 30, windowSec: 900 };
-const USER_COLUMNS = `id, phone, first_name, last_name, email, role, locale, status, (password_hash is not null) as has_password`;
+const USER_COLUMNS = `id, phone, first_name, last_name, email, role, locale, status, (password_hash is not null) as has_password, (phone_verified_at is not null) as phone_verified`;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 const requestSchema = v.object({ phone: v.string({ min: 1, max: 40 }) });
 const verifySchema = v.object({
@@ -33,8 +34,17 @@ const registerSchema = v.object({
   acceptedLegal: v.oneOf([true]),
 });
 const passwordLoginSchema = v.object({
-  email: v.string({ min: 1, max: 254, transform: (s) => s.toLowerCase() }),
+  email: v.optional(v.string({ min: 1, max: 254, transform: (s) => s.toLowerCase() })),
+  phone: v.optional(v.string({ min: 1, max: 40 })),
   password: v.string({ min: 1, max: 128, trim: false }),
+});
+const passwordRegisterSchema = v.object({
+  firstName: v.string({ min: 1, max: 60 }),
+  lastName: v.string({ min: 1, max: 60 }),
+  phone: v.string({ min: 1, max: 40 }),
+  email: v.string({ min: 3, max: 254, pattern: EMAIL_RE, transform: (s) => s.toLowerCase() }),
+  password: v.string({ min: 8, max: 128, trim: false }),
+  acceptedLegal: v.oneOf([true]),
 });
 
 // Verifying against a throw-away hash when the account is missing keeps the
@@ -44,8 +54,8 @@ const dummyHash = () => (dummyHashPromise ??= hashPassword(randomBytes(16).toStr
 
 const genericLoginFailure = () =>
   new ApiError(401, "unauthenticated", {
-    fa: "ایمیل یا رمز عبور درست نیست.",
-    en: "The email or password is incorrect.",
+    fa: "شماره، ایمیل یا رمز عبور درست نیست.",
+    en: "The phone, email, or password is incorrect.",
   });
 
 /** @param {ReturnType<import("../auth/context.js").createAuthContext>} ctx */
@@ -90,7 +100,12 @@ export function authRoutes(ctx) {
   async function continueWithPhone(req, res, phone, method) {
     const { rows } = await db.query(`select ${USER_COLUMNS} from users where phone = $1`, [phone]);
     if (rows[0]) {
-      res.json({ user: await logIn(req, res, rows[0], method) });
+      let row = rows[0];
+      if (method === "otp" && !row.phone_verified) {
+        await db.query("update users set phone_verified_at = $2 where id = $1 and phone_verified_at is null", [row.id, now()]);
+        row = { ...row, phone_verified: true };
+      }
+      res.json({ user: await logIn(req, res, row, method) });
       return;
     }
     res.json({ needsProfile: true, signupToken: issueSignupToken(secret, { phone, now: now(), ttlMs: SIGNUP_TOKEN_TTL_MS }) });
@@ -110,6 +125,10 @@ export function authRoutes(ctx) {
   // Local-only (AUTH_DEV_BYPASS=true): the UI asks whether to skip the SMS code step.
   router.get("/dev-bypass", (_req, res) => {
     res.json({ enabled: ctx.devBypass });
+  });
+
+  router.get("/options", (_req, res) => {
+    res.json({ smsOtp: ctx.smsOtp });
   });
 
   // Local-only: the same as /otp/verify without the SMS code. 404 when the switch is off.
@@ -156,16 +175,70 @@ export function authRoutes(ctx) {
   );
 
   router.post(
+    "/password/register",
+    ctx.originGuard,
+    wrap(async (req, res) => {
+      if (ctx.smsOtp) throw new ApiError(404, "not_found");
+      const body = parseBody(passwordRegisterSchema, req.body);
+      const phone = requirePhone(body.phone);
+      await enforceLimit(db, `pwreg:ip:${sha256Hex(clientAddress(req)).slice(0, 32)}`, PASSWORD_LOGIN_IP_LIMIT.max, PASSWORD_LOGIN_IP_LIMIT.windowSec);
+      await enforceLimit(db, `pwreg:phone:${sha256Hex(phone).slice(0, 32)}`, PASSWORD_LOGIN_EMAIL_LIMIT.max, PASSWORD_LOGIN_EMAIL_LIMIT.windowSec);
+      await enforceLimit(db, `pwreg:email:${sha256Hex(body.email).slice(0, 32)}`, PASSWORD_LOGIN_EMAIL_LIMIT.max, PASSWORD_LOGIN_EMAIL_LIMIT.windowSec);
+      const passwordHash = await hashPassword(body.password);
+      let created;
+      try {
+        created = await registerLearner(ctx, req, {
+          phone,
+          firstName: body.firstName,
+          lastName: body.lastName,
+          email: body.email,
+          passwordHash,
+          phoneVerifiedAt: null,
+          method: "password",
+        });
+      } catch (error) {
+        if (isUniqueViolation(error, "users_phone_key")) {
+          throw new ApiError(409, "conflict", {
+            fa: "با این شماره قبلاً ثبت‌نام شده. وارد شو.",
+            en: "This phone number is already registered. Sign in instead.",
+            details: { field: "phone" },
+          });
+        }
+        if (isUniqueViolation(error, "users_email_lower_key")) {
+          throw new ApiError(409, "conflict", {
+            fa: "این ایمیل قبلاً برای حساب دیگه‌ای استفاده شده.",
+            en: "This email is already used by another account.",
+            details: { field: "email" },
+          });
+        }
+        throw error;
+      }
+      ctx.startSessionCookie(res, created.started);
+      res.status(201).json({ user: created.user });
+    }),
+  );
+
+  router.post(
     "/password/login",
     ctx.originGuard,
     wrap(async (req, res) => {
-      const { email, password } = parseBody(passwordLoginSchema, req.body);
-      if (!email.includes("@")) throw fieldFailure("email", "invalid_format");
+      const body = parseBody(passwordLoginSchema, req.body);
+      const hasEmail = body.email !== undefined;
+      const hasPhone = body.phone !== undefined;
+      if (hasEmail === hasPhone) throw fieldFailure(hasEmail ? "email" : "phone", "invalid_value");
+      const email = hasEmail ? body.email : null;
+      const phone = hasPhone ? requirePhone(body.phone) : null;
+      if (email !== null && !email.includes("@")) throw fieldFailure("email", "invalid_format");
+      const identifier = email ?? phone;
+      const bucket = email !== null ? "email" : "phone";
       await enforceLimit(db, `pwlogin:ip:${sha256Hex(clientAddress(req)).slice(0, 32)}`, PASSWORD_LOGIN_IP_LIMIT.max, PASSWORD_LOGIN_IP_LIMIT.windowSec);
-      await enforceLimit(db, `pwlogin:email:${sha256Hex(email).slice(0, 32)}`, PASSWORD_LOGIN_EMAIL_LIMIT.max, PASSWORD_LOGIN_EMAIL_LIMIT.windowSec);
-      const { rows } = await db.query(`select ${USER_COLUMNS}, password_hash from users where lower(email) = $1`, [email]);
+      await enforceLimit(db, `pwlogin:${bucket}:${sha256Hex(identifier).slice(0, 32)}`, PASSWORD_LOGIN_EMAIL_LIMIT.max, PASSWORD_LOGIN_EMAIL_LIMIT.windowSec);
+      const { rows } = await db.query(
+        `select ${USER_COLUMNS}, password_hash from users where ${email !== null ? "lower(email) = $1" : "phone = $1"}`,
+        [identifier],
+      );
       const row = rows[0];
-      const matches = await verifyPassword(password, row?.password_hash ?? (await dummyHash()));
+      const matches = await verifyPassword(body.password, row?.password_hash ?? (await dummyHash()));
       if (!row?.password_hash || !matches) throw genericLoginFailure();
       res.json({ user: await logIn(req, res, row, "password") });
     }),

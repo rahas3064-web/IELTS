@@ -10,6 +10,7 @@ export function toPublicUser(row) {
     phone: row.phone,
     email: row.email ?? null,
     hasPassword: Boolean(row.has_password),
+    phoneVerified: Boolean(row.phone_verified),
     role: row.role,
     locale: row.locale,
     status: row.status,
@@ -32,6 +33,7 @@ export async function loadMe(db, userId, now = new Date()) {
   const { rows } = await db.query(
     `select u.id, u.phone, u.first_name, u.last_name, u.email, u.role, u.locale, u.status,
             (u.password_hash is not null) as has_password,
+            (u.phone_verified_at is not null) as phone_verified,
             p.exam_type, p.target_band, to_char(p.exam_date, 'YYYY-MM-DD') as exam_date,
             p.exam_date_precision, p.daily_minutes, p.study_days, p.plan_path,
             p.reminder_sms_enabled, to_char(p.reminder_time, 'HH24:MI') as reminder_time,

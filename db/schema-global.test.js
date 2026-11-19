@@ -42,6 +42,8 @@ const NEW_TABLES = {
   "013_enable_rls": [],
   "014_legal_acceptances": ["legal_acceptances"],
   "015_account_deletions": ["account_deletions"],
+  // Columns on speaking_recordings; already deployed, so the file stays an ALTER.
+  "016_speaking_score_state": [],
 };
 const CORE = [
   "users", "otp_codes", "otp_locks", "sessions", "learner_profiles", "admin_credentials", "audit_logs",
@@ -52,7 +54,7 @@ const JSONB_ALLOWED = [
   "ai_feedback.criteria", "audit_logs.after", "audit_logs.before", "audit_logs.meta",
   "content_items.answer_key", "content_items.stem", "content_reviews.diff", "job_runs.stats",
   "mock_answers.answer", "payment_attempts.raw", "payment_provider_events.payload",
-  "placement_answers.answer", "practice_answers.answer", "speaking_recordings.words",
+  "placement_answers.answer", "practice_answers.answer", "speaking_recordings.criteria", "speaking_recordings.words",
   "study_plans.inputs", "system_settings.value",
 ];
 
@@ -61,7 +63,7 @@ beforeAll(async () => { db = await createMigratedDb(); });
 afterAll(async () => { await db.close(); });
 
 describe("migration set", () => {
-  it("has 001..015 in order", async () => {
+  it("has 001..016 in order", async () => {
     const versions = (await listMigrations(migrationsDir)).map((m) => m.version);
     expect(versions).toEqual(["001_core", ...Object.keys(NEW_TABLES)]);
   });
@@ -97,7 +99,8 @@ describe("migration set", () => {
     for (const { path: file, version } of await listMigrations(migrationsDir)) {
       const sql = (await fs.readFile(file, "utf8")).replace(/--.*$/gm, "").toLowerCase();
       const withoutRls = sql.replace(/alter table\b[^;]*\benable row level security\b/g, "");
-      expect(withoutRls, version).not.toMatch(/\balter table\b/);
+      // 016 is already deployed and only adds columns and checks on speaking_recordings.
+      if (version !== "016_speaking_score_state") expect(withoutRls, version).not.toMatch(/\balter table\b/);
       expect(sql, version).not.toMatch(/\bforce row level security\b/);
       expect(sql, version).not.toMatch(/create extension|citext|btree_gist/);
       expect(sql, version).not.toMatch(/nulls not distinct/);

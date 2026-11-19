@@ -18,17 +18,24 @@ async function findReferralCodeId(tx, raw) {
 /**
  * @param {ReturnType<import("../auth/context.js").createAuthContext>} ctx
  * @param {import("express").Request} req
- * @param {{phone: string, firstName: string, lastName: string, referralCode?: string}} input
+ * @param {{phone: string, firstName: string, lastName: string, referralCode?: string,
+ *   email?: string|null, passwordHash?: string|null, phoneVerifiedAt?: Date|null, method?: string}} input
+ *   `phoneVerifiedAt` omitted means the phone was just verified (OTP). Pass null for password signup.
  */
-export async function registerLearner(ctx, req, { phone, firstName, lastName, referralCode }) {
+export async function registerLearner(ctx, req, {
+  phone, firstName, lastName, referralCode, email = null, passwordHash = null, phoneVerifiedAt, method = "otp",
+}) {
   const at = ctx.now();
+  const verifiedAt = phoneVerifiedAt === undefined ? at : phoneVerifiedAt;
   const ip = clientAddress(req);
   return ctx.db.transaction(async (tx) => {
     const { rows } = await tx.query(
-      `insert into users (phone, phone_verified_at, first_name, last_name)
-       values ($1, $2, $3, $4)
-       returning id, phone, first_name, last_name, email, role, locale, status, false as has_password`,
-      [phone, at, firstName, lastName],
+      `insert into users (phone, phone_verified_at, first_name, last_name, email, password_hash)
+       values ($1, $2, $3, $4, $5, $6)
+       returning id, phone, first_name, last_name, email, role, locale, status,
+         (password_hash is not null) as has_password,
+         (phone_verified_at is not null) as phone_verified`,
+      [phone, verifiedAt, firstName, lastName, email, passwordHash],
     );
     const row = rows[0];
     for (const document of LEGAL_DOCUMENTS) {
@@ -61,7 +68,7 @@ export async function registerLearner(ctx, req, { phone, firstName, lastName, re
       targetType: "user",
       targetId: row.id,
       ipHash: ctx.ipHash(req),
-      meta: { phone, referralAccepted: referral?.accepted ?? null },
+      meta: { phone, method, referralAccepted: referral?.accepted ?? null },
     });
     return { user: toPublicUser(row), referral, started };
   });

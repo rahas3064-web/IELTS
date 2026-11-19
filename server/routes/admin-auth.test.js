@@ -85,6 +85,60 @@ describe("admin login", () => {
   });
 });
 
+describe("admin password while SMS.ir is unset", () => {
+  it("signs in an admin who already has a password", async () => {
+    const { phone } = await makeAdmin("super_admin");
+    const setup = t.client();
+    const verified = await otpGate(setup, phone);
+    expect((await setup.request("POST", "/api/admin/auth/password/setup", {
+      body: { gate: verified.json.gate, password: "correct-horse" },
+    })).status).toBe(201);
+
+    const direct = await t.client().request("POST", "/api/admin/auth/password/direct", {
+      body: { phone, password: "correct-horse" },
+    });
+    expect(direct.status).toBe(200);
+    expect(direct.json.role).toBe("super_admin");
+    expect((await t.client().request("GET", "/api/auth/dev-bypass")).json).toEqual({ enabled: false });
+  });
+
+  it("uses one generic failure for a learner, a missing admin password, and a wrong password", async () => {
+    const learnerPhone = freshPhone();
+    await t.signUp(t.client(), learnerPhone);
+    const { phone } = await makeAdmin("reviewer");
+    const learner = await t.client().request("POST", "/api/admin/auth/password/direct", {
+      body: { phone: learnerPhone, password: "correct-horse" },
+    });
+    const unset = await t.client().request("POST", "/api/admin/auth/password/direct", {
+      body: { phone, password: "correct-horse" },
+    });
+    const unknown = await t.client().request("POST", "/api/admin/auth/password/direct", {
+      body: { phone: freshPhone(), password: "correct-horse" },
+    });
+    expect(learner.status).toBe(401);
+    expect(learner.json).toEqual(unset.json);
+    expect(learner.json).toEqual(unknown.json);
+    expect(learner.json.error.code).toBe("unauthenticated");
+  });
+});
+
+describe("admin password once SMS.ir is set", () => {
+  let sms;
+  beforeAll(async () => {
+    sms = await createTestApp({
+      config: { SMSIR_API_KEY: "a", SMSIR_LINE_NUMBER: "1", SMSIR_TEMPLATE_OTP: "2" },
+    });
+  });
+  afterAll(() => sms.close());
+
+  it("does not offer password-only admin login", async () => {
+    const res = await sms.client().request("POST", "/api/admin/auth/password/direct", {
+      body: { phone: freshPhone(), password: "correct-horse" },
+    });
+    expect(res.status).toBe(404);
+  });
+});
+
 describe("admin permission guards", () => {
   const expected = {
     super_admin: PERMISSIONS,

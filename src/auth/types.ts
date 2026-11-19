@@ -7,6 +7,7 @@ export type MeUser = {
   phone: string;
   email: string | null;
   hasPassword?: boolean;
+  phoneVerified?: boolean;
   role: string;
   locale: Locale;
   status: string;

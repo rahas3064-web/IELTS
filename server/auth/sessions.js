@@ -107,7 +107,8 @@ export function createSessionService({ db, secret, now = () => new Date() }) {
       const { rows } = await db.query(
         `select s.id as session_id, s.kind, s.expires_at, s.last_seen_at, s.revoked_at, s.revoked_reason,
                 u.id, u.phone, u.first_name, u.last_name, u.email, u.role, u.locale, u.status,
-                (u.password_hash is not null) as has_password
+                (u.password_hash is not null) as has_password,
+                (u.phone_verified_at is not null) as phone_verified
          from sessions s join users u on u.id = s.user_id
          where s.token_hash = $1`,
         [sha256Hex(token)],
@@ -149,6 +150,7 @@ export function createSessionService({ db, secret, now = () => new Date() }) {
           lastName: row.last_name,
           email: row.email,
           hasPassword: row.has_password,
+          phoneVerified: Boolean(row.phone_verified),
           role: row.role,
           locale: row.locale,
           status: row.status,

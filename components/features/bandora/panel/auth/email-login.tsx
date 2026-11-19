@@ -4,12 +4,19 @@ import { errorText } from "@/src/lib/error-message";
 import { useAuth } from "@/src/auth/auth-provider";
 import { useT } from "@/src/i18n";
 
-/** Secondary sign-in with the optional email + password. Failures stay generic. */
-export function EmailLogin({ onBack }: { onBack: () => void }) {
+const SUPPORT_EMAIL = "rahas3064@gmail.com";
+
+type EmailLoginProps = {
+  onBack?: () => void;
+  onCreateAccount?: () => void;
+};
+
+/** Sign-in with phone or email plus password. Failures stay generic. */
+export function EmailLogin({ onBack, onCreateAccount }: EmailLoginProps) {
   const i18n = useT();
   const { t } = i18n;
   const { refresh } = useAuth();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -19,14 +26,16 @@ export function EmailLogin({ onBack }: { onBack: () => void }) {
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (busy) return;
-    if (email.trim() === "" || password === "") {
-      setError(t("login.email.required"));
+    const raw = identifier.trim();
+    if (raw === "" || password === "") {
+      setError(t("login.password.required"));
       return;
     }
     setBusy(true);
     setError(null);
     try {
-      await api.post("/api/auth/password/login", { email: email.trim(), password });
+      const body = raw.includes("@") ? { email: raw, password } : { phone: raw, password };
+      await api.post("/api/auth/password/login", body);
       await refresh();
     } catch (failure) {
       setError(errorText(failure, i18n));
@@ -39,15 +48,15 @@ export function EmailLogin({ onBack }: { onBack: () => void }) {
     <form onSubmit={submit} noValidate>
       {error ? <p className="bd-alert" role="alert">{error}</p> : null}
       <div className="bd-field">
-        <label htmlFor={emailId}>{t("login.email.label")}</label>
+        <label htmlFor={emailId}>{t("login.password.identifier")}</label>
         <input
           id={emailId}
           className="bd-input bd-input--ltr"
-          type="email"
+          type="text"
           dir="ltr"
-          autoComplete="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
+          autoComplete="username"
+          value={identifier}
+          onChange={(event) => setIdentifier(event.target.value)}
         />
       </div>
       <div className="bd-field">
@@ -65,10 +74,18 @@ export function EmailLogin({ onBack }: { onBack: () => void }) {
       <button type="submit" className="bd-btn bd-btn--solid bd-btn--block" disabled={busy}>
         {busy ? t("login.email.sending") : t("login.email.submit")}
       </button>
+      <p className="bd-muted">
+        <a className="bd-linkbtn" href={`mailto:${SUPPORT_EMAIL}`}>{t("login.password.forgot")}</a>
+      </p>
       <div className="bd-auth__more">
-        <button type="button" className="bd-linkbtn" onClick={onBack}>
-          {t("login.email.back")}
-        </button>
+        {onCreateAccount ? (
+          <button type="button" className="bd-linkbtn" onClick={onCreateAccount}>{t("login.password.signup")}</button>
+        ) : null}
+        {onBack ? (
+          <button type="button" className="bd-linkbtn" onClick={onBack}>
+            {t("login.email.back")}
+          </button>
+        ) : null}
       </div>
     </form>
   );

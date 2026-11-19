@@ -69,7 +69,8 @@ export function accountRoutes(ctx, { mediaDir } = {}) {
         const result = await db.query(
           `update users set email = $2, email_verified_at = null, password_hash = $3
            where id = $1
-           returning id, phone, first_name, last_name, email, role, locale, status, true as has_password`,
+           returning id, phone, first_name, last_name, email, role, locale, status, true as has_password,
+             (phone_verified_at is not null) as phone_verified`,
           [req.user.id, body.email, passwordHash],
         );
         row = result.rows[0];

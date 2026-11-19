@@ -13,7 +13,7 @@ type VerifyResult = { user?: unknown; needsProfile?: boolean; signupToken?: stri
 type OtpStepProps = {
   phone: string;
   initialSeconds: number;
-  onChangePhone: () => void;
+  onChangePhone?: () => void;
   onNeedsProfile: (signupToken: string) => void;
 };
 
@@ -96,9 +96,11 @@ export function OtpStep({ phone, initialSeconds, onChangePhone, onNeedsProfile }
             {t("login.otp.resend")}
           </button>
         )}
-        <button type="button" className="bd-linkbtn" onClick={onChangePhone}>
-          {t("login.otp.changePhone")}
-        </button>
+        {onChangePhone ? (
+          <button type="button" className="bd-linkbtn" onClick={onChangePhone}>
+            {t("login.otp.changePhone")}
+          </button>
+        ) : null}
       </div>
     </div>
   );

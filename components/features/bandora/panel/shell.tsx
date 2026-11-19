@@ -9,6 +9,7 @@ import { MoreSheet } from "@/components/features/bandora/panel/shell/more-sheet"
 import { pageTitleKey } from "@/components/features/bandora/panel/shell/nav-items";
 import { Sidebar } from "@/components/features/bandora/panel/shell/sidebar";
 import { LegalLinks } from "@/components/features/bandora/legal/document";
+import { PhoneVerifyGate } from "@/components/features/bandora/panel/auth/phone-verify-gate";
 
 function Frame() {
   const { t } = useT();
@@ -34,7 +35,9 @@ function Frame() {
       <div className="bd-shell__body">
         <Sidebar />
         <main id="content" className="bd-main" tabIndex={-1}>
-          <Outlet />
+          <PhoneVerifyGate>
+            <Outlet />
+          </PhoneVerifyGate>
           <LegalLinks />
         </main>
       </div>

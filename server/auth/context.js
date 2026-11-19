@@ -11,6 +11,7 @@ import { createOtpService } from "./otp.js";
 import { createSessionService } from "./sessions.js";
 import { createSmsSender } from "./sms.js";
 import { isDevBypassEnabled } from "./dev-bypass.js";
+import { smsOtpConfigured } from "../core/env.js";
 
 /**
  * @param {import("../db.js").Database} db
@@ -92,6 +93,8 @@ export function createAuthContext(db, options = {}) {
     originGuard,
     /** AUTH_DEV_BYPASS: local-only, never true in production (see dev-bypass.js). */
     devBypass: isDevBypassEnabled(config),
+    /** True only when SMSIR_API_KEY, SMSIR_LINE_NUMBER and SMSIR_TEMPLATE_OTP are set. */
+    smsOtp: smsOtpConfigured(config),
     requireUser,
     requireAdmin,
     requirePermission,

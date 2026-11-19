@@ -29,6 +29,11 @@ const passwordSchema = v.object({
   gate: v.string({ min: 1, max: 2048 }),
   password: v.string({ min: 8, max: 128, trim: false }),
 });
+const directSchema = v.object({
+  phone: v.string({ min: 1, max: 40 }),
+  password: v.string({ min: 8, max: 128, trim: false }),
+});
+const PASSWORD_IP_LIMIT = { max: PASSWORD_LIMIT.max * 6, windowSec: PASSWORD_LIMIT.windowSec };
 
 let dummyHashPromise = null;
 const dummyHash = () => (dummyHashPromise ??= hashPassword(randomBytes(16).toString("hex")));
@@ -130,6 +135,26 @@ export function adminAuthRoutes(ctx) {
       const admin = await adminByPhone(normalised);
       if (!admin) throw genericFailure();
       res.json(await passwordGate(admin, normalised));
+    }),
+  );
+
+  // While SMS.ir OTP is unset: the existing admin password is enough. First-time setup stays behind OTP.
+  router.post(
+    "/password/direct",
+    ctx.originGuard,
+    wrap(async (req, res) => {
+      if (ctx.smsOtp) throw new ApiError(404, "not_found");
+      const body = parseBody(directSchema, req.body);
+      const phone = requirePhone(body.phone);
+      await enforceLimit(db, `adminpw:ip:${sha256Hex(clientAddress(req)).slice(0, 32)}`, PASSWORD_IP_LIMIT.max, PASSWORD_IP_LIMIT.windowSec);
+      await enforceLimit(db, `adminpw:${sha256Hex(phone).slice(0, 32)}`, PASSWORD_LIMIT.max, PASSWORD_LIMIT.windowSec);
+      const admin = await adminByPhone(phone);
+      const { rows } = admin
+        ? await db.query("select password_hash from admin_credentials where user_id = $1", [admin.id])
+        : { rows: [] };
+      const matches = await verifyPassword(body.password, rows[0]?.password_hash ?? (await dummyHash()));
+      if (!admin || !rows[0] || !matches) throw genericFailure();
+      res.json(await startAdmin(req, res, admin, "admin_login"));
     }),
   );
 

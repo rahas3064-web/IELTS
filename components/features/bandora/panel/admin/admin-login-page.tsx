@@ -6,6 +6,7 @@ import { errorText } from "@/src/lib/error-message";
 import { normalizePhone } from "@/src/lib/phone";
 import { useT } from "@/src/i18n";
 import { useDevBypass } from "@/src/auth/use-dev-bypass";
+import { useSmsOtp } from "@/src/auth/use-sms-otp";
 
 type Step = "phone" | "code" | "password";
 
@@ -24,6 +25,8 @@ export function AdminLoginPage() {
   const [busy, setBusy] = useState(false);
   // Local AUTH_DEV_BYPASS only: skip the SMS code; the admin password is still required.
   const skipCode = useDevBypass();
+  const smsOtp = useSmsOtp();
+  const direct = smsOtp === false && !skipCode;
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -31,13 +34,18 @@ export function AdminLoginPage() {
     setBusy(true);
     setError(null);
     try {
-      if (step === "phone") {
+      if (direct || step === "phone") {
         const normalised = normalizePhone(phone);
         if (!normalised) {
           setError(t("login.phone.invalid"));
           return;
         }
         setPhone(normalised);
+        if (direct) {
+          await api.post("/api/admin/auth/password/direct", { phone: normalised, password }, { handleAuth: false });
+          navigate("/admin", { replace: true });
+          return;
+        }
         if (skipCode) {
           const gated = await api.post<{ needsPasswordSetup: boolean; gate: string }>(
             "/api/admin/auth/dev-bypass/phone",
@@ -81,7 +89,20 @@ export function AdminLoginPage() {
         <p className="bd-kicker">{t("admin.login.kicker")}</p>
         <h1 id="admin-login-title" className="bd-title">{t("admin.login.title")}</h1>
         <form onSubmit={submit} noValidate>
-          {step === "phone" ? (
+          {smsOtp === null && !skipCode ? <p className="bd-muted">{t("login.loading")}</p> : null}
+          {direct ? (
+            <>
+              <div className="bd-field">
+                <label htmlFor="admin-phone">{t("admin.login.phone")}</label>
+                <input id="admin-phone" className="bd-input bd-input--ltr" dir="ltr" type="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} />
+              </div>
+              <div className="bd-field">
+                <label htmlFor="admin-password">{t("admin.login.password")}</label>
+                <input id="admin-password" className="bd-input" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} />
+              </div>
+            </>
+          ) : null}
+          {!direct && step === "phone" && (smsOtp === true || skipCode) ? (
             <div className="bd-field">
               <label htmlFor="admin-phone">{t("admin.login.phone")}</label>
               <input id="admin-phone" className="bd-input bd-input--ltr" dir="ltr" type="tel" value={phone} onChange={(event) => setPhone(event.target.value)} />
@@ -100,8 +121,8 @@ export function AdminLoginPage() {
             </div>
           ) : null}
           {error ? <p className="bd-error" role="alert">{error}</p> : null}
-          <button type="submit" className="bd-btn bd-btn--solid bd-btn--block" disabled={busy}>
-            {step === "phone" ? (skipCode ? t("admin.login.continue") : t("admin.login.send")) : setup && step === "password" ? t("admin.login.setup") : t("admin.login.continue")}
+          <button type="submit" className="bd-btn bd-btn--solid bd-btn--block" disabled={busy || (smsOtp === null && !skipCode)}>
+            {direct || (step === "phone" && skipCode) ? t("admin.login.continue") : step === "phone" ? t("admin.login.send") : setup && step === "password" ? t("admin.login.setup") : t("admin.login.continue")}
           </button>
           {skipCode && step === "phone" ? <p className="bd-muted">{t("login.devBypass.note")}</p> : null}
         </form>
