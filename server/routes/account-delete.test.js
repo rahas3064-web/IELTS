@@ -71,16 +71,20 @@ describe("POST /api/account/delete", () => {
     const other = await signedIn(freshPhone());
     const bystander = await signedIn(freshPhone());
     const audioName = `${unique("mine")}.bin`;
+    const nestedKey = `speaking/${owner.userId}/44444444-4444-4444-8444-444444444444.webm`;
     const otherName = `${unique("other")}.bin`;
     const bystanderName = `${unique("bystander")}.bin`;
     const examName = `${unique("exam")}.bin`;
     const outside = path.join(path.dirname(mediaDir), `${unique("outside")}.bin`);
     await fs.writeFile(path.join(mediaDir, audioName), "mine");
+    await fs.mkdir(path.dirname(path.join(mediaDir, nestedKey)), { recursive: true });
+    await fs.writeFile(path.join(mediaDir, nestedKey), "nested");
     await fs.writeFile(path.join(mediaDir, otherName), "other");
     await fs.writeFile(path.join(mediaDir, bystanderName), "bystander");
     await fs.writeFile(path.join(mediaDir, examName), "exam");
     await fs.writeFile(outside, "OUTSIDE_CANARY");
     await addRecording(owner.userId, audioName);
+    await addRecording(owner.userId, nestedKey);
     await addRecording(owner.userId, `../../${path.basename(outside)}`);
     await addRecording(other.userId, otherName);
     await addRecording(bystander.userId, bystanderName);
@@ -115,6 +119,7 @@ describe("POST /api/account/delete", () => {
     expect((await t.db.query("select id from users where id = $1", [other.userId])).rows).toHaveLength(0);
     expect((await t.db.query("select id from users where id = $1", [bystander.userId])).rows).toHaveLength(1);
     await expect(fs.access(path.join(mediaDir, audioName))).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(fs.access(path.join(mediaDir, nestedKey))).rejects.toMatchObject({ code: "ENOENT" });
     expect(await fs.readFile(path.join(mediaDir, bystanderName), "utf8")).toBe("bystander");
     expect(await fs.readFile(path.join(mediaDir, examName), "utf8")).toBe("exam");
     expect(await fs.readFile(outside, "utf8")).toBe("OUTSIDE_CANARY");

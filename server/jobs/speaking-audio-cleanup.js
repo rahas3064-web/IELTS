@@ -9,12 +9,14 @@ export const SPEAKING_AUDIO_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
 /** A file inside mediaDir, or null when the key would leave that directory. */
 export function speakingAudioPath(mediaDir, storageKey) {
   if (typeof mediaDir !== "string" || mediaDir === "") return null;
-  if (typeof storageKey !== "string" || storageKey.includes("\0")) return null;
-  const name = path.basename(storageKey);
-  if (!name || name === "." || name === "..") return null;
+  if (typeof storageKey !== "string" || storageKey.includes("\0") || storageKey.includes("\\")) return null;
+  const legacy = /^[A-Za-z0-9._-]+$/;
+  const nested = /^speaking\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.(webm|mp4)$/i;
+  if (!legacy.test(storageKey) && !nested.test(storageKey)) return null;
   const root = path.resolve(mediaDir);
-  const full = path.resolve(root, name);
-  if (full !== path.join(root, name)) return null;
+  const full = path.resolve(root, ...storageKey.split("/"));
+  const rel = path.relative(root, full);
+  if (rel.startsWith("..") || path.isAbsolute(rel)) return null;
   return full;
 }
 

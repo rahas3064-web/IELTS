@@ -17,6 +17,7 @@ import { notificationRoutes } from "./routes/notifications.js";
 import { onboardingRoutes } from "./routes/onboarding.js";
 import { placementRoutes } from "./routes/placement.js";
 import { practiceRoutes } from "./routes/practice.js";
+import { speakingRoutes } from "./routes/speaking.js";
 
 /**
  * API router (kept thin: route handlers live in server/routes/*). Unknown /api
@@ -48,6 +49,11 @@ export function createApi(db, options = {}) {
   router.use("/api", mediaRoutes(auth, { mediaDir }));
   router.use("/api", placementRoutes(auth));
   router.use("/api", practiceRoutes(auth));
+  router.use("/api/speaking", speakingRoutes(auth, {
+    mediaDir,
+    statfs: options.speakingStatfs,
+    uploadMax: options.speakingUploadMax,
+  }));
   router.use("/api", mockRoutes(auth, options.mocks));
   router.use("/api/account", accountRoutes(auth, { mediaDir }));
   router.use("/api", meRoutes(auth));

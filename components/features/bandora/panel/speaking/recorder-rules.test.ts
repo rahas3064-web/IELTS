@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { elapsedSec, pickRecordingMime, recordingLimitSec, UPLOAD_AUDIO_TYPES } from "./recorder-rules";
+import { elapsedSec, pickRecordingMime, RECORDING_BITS_PER_SECOND, recordingLimitSec, UPLOAD_AUDIO_TYPES } from "./recorder-rules";
 
 describe("recording limits", () => {
   it("caps part 1 and part 3 at 60 seconds and part 2 at 120", () => {
@@ -24,5 +24,6 @@ describe("recording mime", () => {
 
   it("names webm and mp4 as the types the next upload must accept", () => {
     expect([...UPLOAD_AUDIO_TYPES]).toEqual(["audio/webm", "audio/mp4"]);
+    expect(RECORDING_BITS_PER_SECOND).toBe(48_000);
   });
 });

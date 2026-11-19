@@ -1,7 +1,8 @@
 export type SpeakingPart = 1 | 2 | 3;
 
-/** Compressed types the next upload step must accept. Safari records mp4. */
+/** Compressed types the upload accepts. Safari records mp4. */
 export const UPLOAD_AUDIO_TYPES = ["audio/webm", "audio/mp4"] as const;
+export const RECORDING_BITS_PER_SECOND = 48_000;
 
 const MIME_CANDIDATES = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/aac"] as const;
 

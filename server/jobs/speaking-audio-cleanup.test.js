@@ -46,6 +46,10 @@ describe("runSpeakingAudioCleanup", () => {
     await fs.writeFile(path.join(mediaDir, examKey), "exam-audio");
     await fs.writeFile(outside, "OUTSIDE_CANARY");
     const old = await recording(daysAgo(90), oldKey);
+    const nestedKey = `speaking/22222222-2222-4222-8222-222222222222/33333333-3333-4333-8333-333333333333.webm`;
+    await fs.mkdir(path.dirname(path.join(mediaDir, nestedKey)), { recursive: true });
+    await fs.writeFile(path.join(mediaDir, nestedKey), "nested-audio");
+    const nested = await recording(daysAgo(100), nestedKey);
     const fresh = await recording(daysAgo(89), freshKey);
     await recording(daysAgo(120), `../../${path.basename(outside)}`);
     await insert(db, "media_assets", {
@@ -57,13 +61,14 @@ describe("runSpeakingAudioCleanup", () => {
     });
 
     const stats = await runSpeakingAudioCleanup({ db, now: NOW, mediaDir });
-    expect(stats.recordings).toBe(2);
-    expect(stats.files).toBe(1);
+    expect(stats.recordings).toBe(3);
+    expect(stats.files).toBe(2);
     await expect(fs.access(path.join(mediaDir, oldKey))).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(fs.access(path.join(mediaDir, nestedKey))).rejects.toMatchObject({ code: "ENOENT" });
     expect(await fs.readFile(path.join(mediaDir, freshKey), "utf8")).toBe("fresh-audio");
     expect(await fs.readFile(path.join(mediaDir, examKey), "utf8")).toBe("exam-audio");
     expect(await fs.readFile(outside, "utf8")).toBe("OUTSIDE_CANARY");
-    const left = await db.query("select id from speaking_recordings where id = any($1::uuid[])", [[old.id, fresh.id]]);
+    const left = await db.query("select id from speaking_recordings where id = any($1::uuid[])", [[old.id, fresh.id, nested.id]]);
     expect(left.rows.map((row) => row.id)).toEqual([fresh.id]);
     expect((await db.query("select count(*)::int as n from media_assets where storage_key = $1", [`audio/${examKey}`])).rows[0].n).toBe(1);
     await fs.rm(outside, { force: true });

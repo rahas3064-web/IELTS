@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { elapsedSec, pickRecordingMime, recordingLimitSec, type SpeakingPart } from "./recorder-rules";
+import { elapsedSec, pickRecordingMime, RECORDING_BITS_PER_SECOND, recordingLimitSec, type SpeakingPart } from "./recorder-rules";
 
 export type RecorderPhase = "idle" | "recording" | "ready" | "denied" | "unsupported" | "error";
 
@@ -52,7 +52,12 @@ export function useRecorder(part: SpeakingPart) {
       });
       streamRef.current = stream;
       chunksRef.current = [];
-      const recorder = new MediaRecorder(stream, { mimeType: chosen });
+      let recorder;
+      try {
+        recorder = new MediaRecorder(stream, { mimeType: chosen, audioBitsPerSecond: RECORDING_BITS_PER_SECOND });
+      } catch {
+        recorder = new MediaRecorder(stream, { mimeType: chosen });
+      }
       recorder.ondataavailable = (event) => {
         if (event.data.size > 0) chunksRef.current.push(event.data);
       };
