@@ -8,17 +8,12 @@ beforeAll(async () => {
 afterAll(() => t.close());
 beforeEach(() => t.resetLimits());
 
-let emailSeq = 0;
-const freshEmail = () => `signup${(emailSeq += 1)}@example.com`;
-
 const register = (device, body) => device.request("POST", "/api/auth/password/register", { body });
 
 function signupBody(overrides = {}) {
   return {
-    firstName: "Sara",
-    lastName: "Ahmadi",
+    fullName: "Sara Ahmadi",
     phone: freshPhone(),
-    email: freshEmail(),
     password: "long enough 1",
     acceptedLegal: true,
     ...overrides,
@@ -35,7 +30,7 @@ describe("password signup while SMS.ir is unset", () => {
     const res = await register(t.client(), body);
     expect(res.status).toBe(201);
     expect(res.json.user).toMatchObject({
-      phone: body.phone, email: body.email, hasPassword: true, phoneVerified: false, role: "learner",
+      firstName: "Sara", lastName: "Ahmadi", phone: body.phone, email: null, hasPassword: true, phoneVerified: false, role: "learner",
     });
     expect(res.text).not.toContain(body.password);
     const { rows } = await t.db.query(
@@ -63,7 +58,13 @@ describe("password signup while SMS.ir is unset", () => {
     expect((await device.request("GET", "/api/me")).json.user.id).toBe(res.json.user.id);
   });
 
-  it("refuses a short password, a missing acceptance, and a duplicate phone or email", async () => {
+  it("stores one word as the first name and a sentinel last name", async () => {
+    const res = await register(t.client(), signupBody({ fullName: "رها" }));
+    expect(res.status).toBe(201);
+    expect(res.json.user).toMatchObject({ firstName: "رها", lastName: "-" });
+  });
+
+  it("refuses a short password, a missing acceptance, and a duplicate phone", async () => {
     const first = signupBody();
     expect((await register(t.client(), first)).status).toBe(201);
     expect((await register(t.client(), signupBody({ password: "short" }))).status).toBe(400);
@@ -74,9 +75,6 @@ describe("password signup while SMS.ir is unset", () => {
     const samePhone = await register(t.client(), signupBody({ phone: first.phone }));
     expect(samePhone.status).toBe(409);
     expect(samePhone.json.error.details.field).toBe("phone");
-    const sameEmail = await register(t.client(), signupBody({ email: first.email.toUpperCase() }));
-    expect(sameEmail.status).toBe(409);
-    expect(sameEmail.json.error.details.field).toBe("email");
   });
 
   it("verifies the phone once when that account later completes OTP", async () => {

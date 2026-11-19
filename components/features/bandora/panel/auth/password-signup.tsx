@@ -17,21 +17,19 @@ export function PasswordSignup({ onSignIn }: PasswordSignupProps) {
   const i18n = useT();
   const { t } = i18n;
   const { refresh } = useAuth();
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [accepted, setAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const ids = { first: useId(), last: useId(), phone: useId(), email: useId(), password: useId() };
+  const ids = { name: useId(), phone: useId(), password: useId() };
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (busy) return;
     const normalised = normalizePhone(phone);
-    if (firstName.trim() === "" || lastName.trim() === "" || !normalised || !email.includes("@") || password.length < 8) {
+    if (fullName.trim() === "" || !normalised || password.length < 8) {
       setError(t("login.signup.invalid"));
       return;
     }
@@ -43,10 +41,8 @@ export function PasswordSignup({ onSignIn }: PasswordSignupProps) {
     setError(null);
     try {
       await api.post("/api/auth/password/register", {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
+        fullName: fullName.trim(),
         phone: normalised,
-        email: email.trim(),
         password,
         acceptedLegal: true,
       });
@@ -62,20 +58,12 @@ export function PasswordSignup({ onSignIn }: PasswordSignupProps) {
     <form onSubmit={submit} noValidate>
       {error ? <p className="bd-alert" role="alert">{error}</p> : null}
       <div className="bd-field">
-        <label htmlFor={ids.first}>{t("login.profile.first")}</label>
-        <input id={ids.first} className="bd-input" autoComplete="given-name" value={firstName} onChange={(event) => setFirstName(event.target.value)} />
-      </div>
-      <div className="bd-field">
-        <label htmlFor={ids.last}>{t("login.profile.last")}</label>
-        <input id={ids.last} className="bd-input" autoComplete="family-name" value={lastName} onChange={(event) => setLastName(event.target.value)} />
+        <label htmlFor={ids.name}>{t("login.signup.fullName")}</label>
+        <input id={ids.name} className="bd-input" autoComplete="name" value={fullName} onChange={(event) => setFullName(event.target.value)} />
       </div>
       <div className="bd-field">
         <label htmlFor={ids.phone}>{t("login.phone.label")}</label>
         <input id={ids.phone} className="bd-input bd-input--ltr" dir="ltr" type="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} />
-      </div>
-      <div className="bd-field">
-        <label htmlFor={ids.email}>{t("login.signup.email")}</label>
-        <input id={ids.email} className="bd-input bd-input--ltr" dir="ltr" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} />
       </div>
       <div className="bd-field">
         <label htmlFor={ids.password}>{t("login.email.password")}</label>

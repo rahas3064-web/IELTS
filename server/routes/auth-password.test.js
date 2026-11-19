@@ -131,11 +131,8 @@ describe("POST /api/auth/password/login", () => {
   it("accepts the phone with the same generic failure and the same per-identifier limit", async () => {
     const phone = freshPhone();
     const device = t.client();
-    const email = freshEmail();
     const created = await device.request("POST", "/api/auth/password/register", {
-      body: {
-        firstName: "Sara", lastName: "Ahmadi", phone, email, password: "right password 1", acceptedLegal: true,
-      },
+      body: { fullName: "Sara Ahmadi", phone, password: "right password 1", acceptedLegal: true },
     });
     expect(created.status).toBe(201);
     const login = await passwordLogin(t.client(), { phone, password: "right password 1" });

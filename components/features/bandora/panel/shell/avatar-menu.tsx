@@ -5,13 +5,14 @@ import { useAuth } from "@/src/auth/auth-provider";
 import { useT } from "@/src/i18n";
 import { LocaleSwitch } from "@/components/features/bandora/panel/shell/locale-switch";
 import { usePopover } from "@/components/features/bandora/panel/shell/use-popover";
+import { displayName } from "@/server/auth/full-name.js";
 
 export function AvatarMenu() {
   const { t } = useT();
   const { me } = useAuth();
   const popover = usePopover();
   const panelId = useId();
-  const name = me ? `${me.user.firstName} ${me.user.lastName}`.trim() : "";
+  const name = me ? displayName(me.user.firstName, me.user.lastName) : "";
   const initial = me?.user.firstName.slice(0, 1) ?? "";
 
   return (

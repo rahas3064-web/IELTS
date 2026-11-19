@@ -4,6 +4,7 @@ import { useAuth } from "@/src/auth/auth-provider";
 import { useT } from "@/src/i18n";
 import { api } from "@/src/lib/api-client";
 import { CardSkeleton, EmptyState } from "@/components/features/bandora/panel/ui/states";
+import { displayName } from "@/server/auth/full-name.js";
 
 /** Sections that must not show a band until a human publishes content. */
 export function UnpublishedSection({ titleKey }: { titleKey: string }) {
@@ -24,7 +25,7 @@ export function ProfilePage() {
   return (
     <section className="bd-card bd-stack" aria-labelledby="profile-title">
       <h2 id="profile-title" className="bd-title">{t("nav.profile")}</h2>
-      <p>{user.firstName} {user.lastName}</p>
+      <p>{displayName(user.firstName, user.lastName)}</p>
       <p>{t("profile.phone")}: <span dir="ltr">{user.phone}</span></p>
       <p>{t("profile.email")}: {user.email ?? t("profile.none")}</p>
       <DeleteAccount />

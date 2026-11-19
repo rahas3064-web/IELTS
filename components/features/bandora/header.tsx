@@ -20,6 +20,8 @@ export function BandoraHeader({
   onToggleMenu,
   onCloseMenu,
   onLang,
+  onOpenLogin,
+  onOpenSignup,
 }: {
   mobile: boolean;
   menu: boolean;
@@ -27,6 +29,8 @@ export function BandoraHeader({
   onToggleMenu: () => void;
   onCloseMenu: () => void;
   onLang: (lang: Lang) => void;
+  onOpenLogin: () => void;
+  onOpenSignup: () => void;
 }) {
   return (
     <header data-screen-label="01 Header" style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(246,241,231,.92)", backdropFilter: "blur(8px)", borderBottom: "1px solid #D9CFBB" }}>
@@ -46,9 +50,9 @@ export function BandoraHeader({
               ))}
             </nav>
             <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-              <LoginLink style={{ fontSize: 15 }} />
+              <LoginLink style={{ fontSize: 15 }} onOpen={onOpenLogin} />
               <LangToggle lang={lang} onChange={onLang} />
-              <SignupLink className="bd-solid" style={{ borderRadius: 4, padding: "8px 20px", fontSize: 15 }}>شروع رایگان</SignupLink>
+              <SignupLink className="bd-solid" style={{ borderRadius: 4, padding: "8px 20px", fontSize: 15 }} onOpen={onOpenSignup}>شروع رایگان</SignupLink>
             </div>
           </>
         )}
@@ -59,10 +63,10 @@ export function BandoraHeader({
             <a key={item.href} href={item.href} onClick={onCloseMenu} style={{ color: "#1A2238", padding: "12px 0", borderBottom: "1px solid #E7DFCD", minHeight: 44 }}>{item.label}</a>
           ))}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 0" }}>
-            <LoginLink onClick={onCloseMenu} />
+            <LoginLink onClick={onCloseMenu} onOpen={onOpenLogin} />
             <LangToggle lang={lang} onChange={onLang} menu />
           </div>
-          <SignupLink onClick={onCloseMenu} style={{ background: "#1F2E54", color: "#F6F1E7", borderRadius: 4, padding: "12px 20px", textAlign: "center" }}>شروع رایگان</SignupLink>
+          <SignupLink onClick={onCloseMenu} onOpen={onOpenSignup} style={{ background: "#1F2E54", color: "#F6F1E7", borderRadius: 4, padding: "12px 20px", textAlign: "center" }}>شروع رایگان</SignupLink>
         </div>
       ) : null}
     </header>

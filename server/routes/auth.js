@@ -10,6 +10,7 @@ import { assertDevBypass } from "../auth/dev-bypass.js";
 import { issueSignupToken, readSignupToken, sha256Hex } from "../auth/tokens.js";
 import { clientAddress } from "../rate-limit.js";
 import { hashPassword, verifyPassword } from "../passwords.js";
+import { splitFullName } from "../auth/full-name.js";
 import { fieldFailure, isUniqueViolation, requirePhone, wrap } from "./util.js";
 import { toPublicUser } from "./me-payload.js";
 import { registerLearner } from "./register.js";
@@ -19,7 +20,6 @@ const PASSWORD_LOGIN_EMAIL_LIMIT = { max: 5, windowSec: 900 };
 const PASSWORD_LOGIN_IP_LIMIT = { max: 30, windowSec: 900 };
 const DEV_BYPASS_IP_LIMIT = { max: 30, windowSec: 900 };
 const USER_COLUMNS = `id, phone, first_name, last_name, email, role, locale, status, (password_hash is not null) as has_password, (phone_verified_at is not null) as phone_verified`;
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 const requestSchema = v.object({ phone: v.string({ min: 1, max: 40 }) });
 const verifySchema = v.object({
@@ -39,10 +39,8 @@ const passwordLoginSchema = v.object({
   password: v.string({ min: 1, max: 128, trim: false }),
 });
 const passwordRegisterSchema = v.object({
-  firstName: v.string({ min: 1, max: 60 }),
-  lastName: v.string({ min: 1, max: 60 }),
+  fullName: v.string({ min: 1, max: 121 }),
   phone: v.string({ min: 1, max: 40 }),
-  email: v.string({ min: 3, max: 254, pattern: EMAIL_RE, transform: (s) => s.toLowerCase() }),
   password: v.string({ min: 8, max: 128, trim: false }),
   acceptedLegal: v.oneOf([true]),
 });
@@ -180,18 +178,18 @@ export function authRoutes(ctx) {
     wrap(async (req, res) => {
       if (ctx.smsOtp) throw new ApiError(404, "not_found");
       const body = parseBody(passwordRegisterSchema, req.body);
+      const names = splitFullName(body.fullName);
+      if (!names) throw fieldFailure("fullName", "too_long");
       const phone = requirePhone(body.phone);
       await enforceLimit(db, `pwreg:ip:${sha256Hex(clientAddress(req)).slice(0, 32)}`, PASSWORD_LOGIN_IP_LIMIT.max, PASSWORD_LOGIN_IP_LIMIT.windowSec);
       await enforceLimit(db, `pwreg:phone:${sha256Hex(phone).slice(0, 32)}`, PASSWORD_LOGIN_EMAIL_LIMIT.max, PASSWORD_LOGIN_EMAIL_LIMIT.windowSec);
-      await enforceLimit(db, `pwreg:email:${sha256Hex(body.email).slice(0, 32)}`, PASSWORD_LOGIN_EMAIL_LIMIT.max, PASSWORD_LOGIN_EMAIL_LIMIT.windowSec);
       const passwordHash = await hashPassword(body.password);
       let created;
       try {
         created = await registerLearner(ctx, req, {
           phone,
-          firstName: body.firstName,
-          lastName: body.lastName,
-          email: body.email,
+          firstName: names.firstName,
+          lastName: names.lastName,
           passwordHash,
           phoneVerifiedAt: null,
           method: "password",
@@ -202,13 +200,6 @@ export function authRoutes(ctx) {
             fa: "با این شماره قبلاً ثبت‌نام شده. وارد شو.",
             en: "This phone number is already registered. Sign in instead.",
             details: { field: "phone" },
-          });
-        }
-        if (isUniqueViolation(error, "users_email_lower_key")) {
-          throw new ApiError(409, "conflict", {
-            fa: "این ایمیل قبلاً برای حساب دیگه‌ای استفاده شده.",
-            en: "This email is already used by another account.",
-            details: { field: "email" },
           });
         }
         throw error;

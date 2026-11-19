@@ -1,7 +1,7 @@
 import { AI_FEEDBACK, CHECK_PATH, CTA, HERO, SKILLS, TASKS } from "@/components/features/bandora/content";
 import { SignupLink, estedad, playfair } from "@/components/features/bandora/bits";
 
-export function BandoraHero() {
+export function BandoraHero({ onSignup }: { onSignup: () => void }) {
   return (
     <section id="top" data-screen-label="02 Hero" style={{ padding: "88px 24px 96px" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,420px),1fr))", gap: 64, alignItems: "center" }}>
@@ -10,7 +10,7 @@ export function BandoraHero() {
           <h1 style={{ fontFamily: estedad, fontWeight: 800, fontSize: "clamp(34px,4.6vw,56px)", lineHeight: 1.4, margin: "0 0 24px", color: "#1F2E54", textWrap: "balance" }}>{HERO.title}</h1>
           <p style={{ margin: "0 0 36px", maxWidth: 520, color: "#3F465C", textWrap: "pretty" }}>{HERO.body}</p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 14 }}>
-            <SignupLink className="bd-solid-lift" style={{ borderRadius: 4, padding: "13px 30px" }}>شروع رایگان</SignupLink>
+            <SignupLink className="bd-solid-lift" style={{ borderRadius: 4, padding: "13px 30px" }} onOpen={onSignup}>شروع رایگان</SignupLink>
             <a href={CTA.philosophy} className="bd-outline-lift" style={{ borderRadius: 4, padding: "13px 28px" }}>بیشتر با Bandora آشنا شو</a>
           </div>
         </div>

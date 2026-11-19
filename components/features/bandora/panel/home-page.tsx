@@ -3,6 +3,7 @@ import { useAuth } from "@/src/auth/auth-provider";
 import { useT } from "@/src/i18n";
 import { useFrame } from "@/components/features/bandora/panel/shell/frame-context";
 import { CardSkeleton, EmptyState } from "@/components/features/bandora/panel/ui/states";
+import { displayName } from "@/server/auth/full-name.js";
 
 /** Honest Phase-1 home: real /api/me + /api/frame only; no invented scores or tasks. */
 export function HomePage() {
@@ -12,7 +13,7 @@ export function HomePage() {
 
   if (!me) return <CardSkeleton />;
 
-  const name = `${me.user.firstName} ${me.user.lastName}`.trim() || me.user.firstName;
+  const name = displayName(me.user.firstName, me.user.lastName);
   const exam =
     me.profile?.examType === "academic"
       ? t("onboarding.exam.academic")

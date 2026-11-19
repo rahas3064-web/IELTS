@@ -1,7 +1,7 @@
 import { CHECK_PATH, CTA, FAQ_HEAD, FINAL_CTA, FREE_FEATURES, PREMIUM_FEATURES, PRICING_HEAD, faqView } from "@/components/features/bandora/content";
 import { SignupLink, estedad, playfair } from "@/components/features/bandora/bits";
 
-export function BandoraPricing() {
+export function BandoraPricing({ onSignup }: { onSignup: () => void }) {
   return (
     <section id="pricing" data-screen-label="07 Pricing" style={{ padding: "112px 24px", borderTop: "1px solid #D9CFBB" }}>
       <div style={{ maxWidth: 1000, margin: "0 auto" }}>
@@ -22,7 +22,7 @@ export function BandoraPricing() {
                 </li>
               ))}
             </ul>
-            <SignupLink className="bd-outline" style={{ textAlign: "center", borderRadius: 4, padding: 13 }}>شروع رایگان</SignupLink>
+            <SignupLink className="bd-outline" style={{ textAlign: "center", borderRadius: 4, padding: 13 }} onOpen={onSignup}>شروع رایگان</SignupLink>
           </div>
           <div data-reveal="1" style={{ position: "relative", border: "1px solid #B08D4A", borderRadius: 6, background: "#1F2E54", color: "#F6F1E7", padding: "44px 40px", display: "flex", flexDirection: "column", boxShadow: "inset 0 0 0 6px #1F2E54, inset 0 0 0 7px rgba(176,141,74,.45)" }}>
             <span style={{ position: "absolute", top: 22, left: 24, border: "1px solid #D6B87A", color: "#D6B87A", borderRadius: 3, padding: "0 12px", fontSize: 13, lineHeight: "26px" }}>پیشنهاد ما</span>
@@ -86,13 +86,13 @@ export function BandoraFaq({ open, onToggle }: { open: number; onToggle: (index:
   );
 }
 
-export function BandoraFinalCta() {
+export function BandoraFinalCta({ onSignup }: { onSignup: () => void }) {
   return (
     <section data-screen-label="09 Final CTA" style={{ background: "#1F2E54", color: "#F6F1E7", padding: "104px 24px", textAlign: "center" }}>
       <div data-reveal="1" style={{ maxWidth: 820, margin: "0 auto" }}>
         <div style={{ width: 56, height: 1, background: "#B08D4A", margin: "0 auto 32px" }} />
         <h2 style={{ fontFamily: estedad, fontWeight: 800, fontSize: "clamp(28px,3.8vw,44px)", lineHeight: 1.6, margin: "0 0 40px", textWrap: "balance" }}>{FINAL_CTA}</h2>
-        <SignupLink className="bd-cream" style={{ display: "inline-block", borderRadius: 4, padding: "14px 38px" }}>شروع رایگان</SignupLink>
+        <SignupLink className="bd-cream" style={{ display: "inline-block", borderRadius: 4, padding: "14px 38px" }} onOpen={onSignup}>شروع رایگان</SignupLink>
       </div>
     </section>
   );

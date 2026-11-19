@@ -44,7 +44,10 @@ const NEW_TABLES = {
   "015_account_deletions": ["account_deletions"],
   // Columns on speaking_recordings; already deployed, so the file stays an ALTER.
   "016_speaking_score_state": [],
+  // Drops users_password_needs_email so a password can exist without an email.
+  "017_password_without_email": [],
 };
+const COLUMN_PATCHES = new Set(["016_speaking_score_state", "017_password_without_email"]);
 const CORE = [
   "users", "otp_codes", "otp_locks", "sessions", "learner_profiles", "admin_credentials", "audit_logs",
   "notifications", "sms_messages", "user_streaks", "rate_limits", "system_settings", "job_runs",
@@ -63,7 +66,7 @@ beforeAll(async () => { db = await createMigratedDb(); });
 afterAll(async () => { await db.close(); });
 
 describe("migration set", () => {
-  it("has 001..016 in order", async () => {
+  it("has 001..017 in order", async () => {
     const versions = (await listMigrations(migrationsDir)).map((m) => m.version);
     expect(versions).toEqual(["001_core", ...Object.keys(NEW_TABLES)]);
   });
@@ -99,8 +102,7 @@ describe("migration set", () => {
     for (const { path: file, version } of await listMigrations(migrationsDir)) {
       const sql = (await fs.readFile(file, "utf8")).replace(/--.*$/gm, "").toLowerCase();
       const withoutRls = sql.replace(/alter table\b[^;]*\benable row level security\b/g, "");
-      // 016 is already deployed and only adds columns and checks on speaking_recordings.
-      if (version !== "016_speaking_score_state") expect(withoutRls, version).not.toMatch(/\balter table\b/);
+      if (!COLUMN_PATCHES.has(version)) expect(withoutRls, version).not.toMatch(/\balter table\b/);
       expect(sql, version).not.toMatch(/\bforce row level security\b/);
       expect(sql, version).not.toMatch(/create extension|citext|btree_gist/);
       expect(sql, version).not.toMatch(/nulls not distinct/);

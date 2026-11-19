@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties, MouseEvent } from "react";
 import Link from "@/components/link";
 import { CTA, langColors, type Lang } from "@/components/features/bandora/content";
 
@@ -31,17 +31,36 @@ export function LangToggle({ lang, onChange, menu }: { lang: Lang; onChange: (la
   );
 }
 
-export function SignupLink({ className, style, children, onClick }: { className?: string; style?: CSSProperties; children: string; onClick?: () => void }) {
+export function SignupLink({ className, style, children, onClick, onOpen }: { className?: string; style?: CSSProperties; children: string; onClick?: () => void; onOpen?: () => void }) {
   return (
-    <Link href={CTA.signup} className={className} style={style} onClick={onClick}>
+    <Link
+      href={CTA.signup}
+      className={className}
+      style={style}
+      onClick={(event: MouseEvent<HTMLAnchorElement>) => {
+        onClick?.();
+        if (!onOpen) return;
+        event.preventDefault();
+        onOpen();
+      }}
+    >
       {children}
     </Link>
   );
 }
 
-export function LoginLink({ style, onClick }: { style?: CSSProperties; onClick?: () => void }) {
+export function LoginLink({ style, onClick, onOpen }: { style?: CSSProperties; onClick?: () => void; onOpen?: () => void }) {
   return (
-    <Link href={CTA.login} onClick={onClick} style={{ color: "#1A2238", ...style }}>
+    <Link
+      href={CTA.login}
+      onClick={(event: MouseEvent<HTMLAnchorElement>) => {
+        onClick?.();
+        if (!onOpen) return;
+        event.preventDefault();
+        onOpen();
+      }}
+      style={{ color: "#1A2238", ...style }}
+    >
       ورود
     </Link>
   );

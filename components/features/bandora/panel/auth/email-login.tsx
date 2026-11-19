@@ -58,6 +58,7 @@ export function EmailLogin({ onBack, onCreateAccount }: EmailLoginProps) {
           value={identifier}
           onChange={(event) => setIdentifier(event.target.value)}
         />
+        <p className="bd-muted">{t("login.password.emailHint")}</p>
       </div>
       <div className="bd-field">
         <label htmlFor={passwordId}>{t("login.email.password")}</label>

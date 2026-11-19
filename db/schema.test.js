@@ -65,8 +65,9 @@ describe("migration files", () => {
     for (const { path: file, version } of await listMigrations(dir)) {
       const sql = (await fs.readFile(file, "utf8")).replace(/--.*$/gm, "").toLowerCase();
       const withoutRls = sql.replace(/alter table\b[^;]*\benable row level security\b/g, "");
-      // 016 is already deployed and only adds columns and checks on speaking_recordings.
-      if (version !== "016_speaking_score_state") expect(withoutRls).not.toMatch(/\balter table\b/);
+      if (version !== "016_speaking_score_state" && version !== "017_password_without_email") {
+        expect(withoutRls).not.toMatch(/\balter table\b/);
+      }
       expect(sql).not.toMatch(/create extension/);
       expect(sql).not.toMatch(/citext/);
     }
@@ -174,8 +175,10 @@ describe("users constraints", () => {
     await newUser();
   });
 
-  it("requires an e-mail before a password and ties deletion to status", async () => {
-    await expectViolation(newUser({ password_hash: "x" }), /users_password_needs_email/);
+  it("allows a password without an email and ties deletion to status", async () => {
+    const withPassword = await newUser({ password_hash: "x" });
+    expect(withPassword.email).toBeNull();
+    expect(withPassword.password_hash).toBe("x");
     await expectViolation(newUser({ status: "pending_deletion" }), /users_deletion_matches_status/);
     await expectViolation(newUser({ deletion_requested_at: new Date() }), /users_deletion_matches_status/);
     const gone = await newUser({ status: "pending_deletion", deletion_requested_at: new Date() });
