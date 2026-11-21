@@ -1,6 +1,28 @@
-import type { CSSProperties } from "react";
+import type { ComponentProps, CSSProperties } from "react";
 import { FOOTER_TAG, NAV, menuIcon, type Lang } from "@/components/features/bandora/content";
 import { LangToggle, LoginLink, Logo, SignupLink } from "@/components/features/bandora/bits";
+
+const ENAMAD_HREF = "https://trustseal.enamad.ir/?id=8815501&Code=2Tsc6O5b6CL8gxvGp4hsJDH0N6wCTRgn";
+const ENAMAD_SRC = "https://trustseal.enamad.ir/logo.aspx?id=8815501&Code=2Tsc6O5b6CL8gxvGp4hsJDH0N6wCTRgn";
+const ENAMAD_CODE = "2Tsc6O5b6CL8gxvGp4hsJDH0N6wCTRgn";
+
+type EnamadImageProps = ComponentProps<"img"> & { code: string };
+
+const enamadImage: EnamadImageProps = {
+  referrerPolicy: "origin",
+  src: ENAMAD_SRC,
+  alt: "نماد اعتماد الکترونیکی",
+  code: ENAMAD_CODE,
+  style: { cursor: "pointer", height: 80, width: "auto", maxWidth: "100%" },
+};
+
+function EnamadSeal() {
+  return (
+    <a referrerPolicy="origin" target="_blank" href={ENAMAD_HREF} style={{ display: "inline-block", lineHeight: 0 }}>
+      <img {...enamadImage} />
+    </a>
+  );
+}
 
 const row: CSSProperties = {
   maxWidth: 1200,
@@ -99,7 +121,10 @@ export function BandoraFooter() {
             </div>
           </div>
         </div>
-        <div style={{ borderTop: "1px solid #D9CFBB", paddingTop: 24, textAlign: "center", font: "14px 'Playfair Display',serif", color: "#6B6757", direction: "ltr" }}>© 2026 Bandora. All rights reserved.</div>
+        <div style={{ borderTop: "1px solid #D9CFBB", paddingTop: 24, display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+          <EnamadSeal />
+          <div style={{ textAlign: "center", font: "14px 'Playfair Display',serif", color: "#6B6757", direction: "ltr" }}>© 2026 Bandora. All rights reserved.</div>
+        </div>
       </div>
     </footer>
   );
