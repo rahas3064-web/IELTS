@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { clientPage } from "./server/client-page.js";
 import { assertEnv, featureStatus, validateEnv } from "./server/core/env.js";
+import { securityHeaders } from "./server/security-headers.js";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const isProd = process.env.NODE_ENV === "production";
@@ -65,20 +66,7 @@ if (featureStatus(config).bale) {
 const app = express();
 app.disable("x-powered-by");
 if (isProd) app.set("trust proxy", 1);
-app.use((req, res, next) => {
-  res.setHeader("X-Content-Type-Options", "nosniff");
-  res.setHeader("X-Frame-Options", "DENY");
-  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-  res.setHeader("Permissions-Policy", "camera=(), microphone=(self), geolocation=(), payment=()");
-  if (isProd) {
-    res.setHeader("Strict-Transport-Security", "max-age=15552000; includeSubDomains");
-    res.setHeader(
-      "Content-Security-Policy",
-      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'",
-    );
-  }
-  next();
-});
+app.use(securityHeaders({ production: isProd }));
 
 app.use(createApi(db, apiOptions));
 
