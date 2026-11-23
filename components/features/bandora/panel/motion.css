@@ -1,0 +1,104 @@
+/* Approved panel motion. Ease-out is cubic-bezier(.22, 1, .36, 1). Loops stop under reduced motion. */
+
+.bd-app {
+  --bd-ease: cubic-bezier(.22, 1, .36, 1);
+}
+
+@keyframes bd-ring {
+  0%, 100% { box-shadow: 0 0 0 10px var(--bd-gold); }
+  50% { box-shadow: 0 0 0 16px rgb(176 141 74 / 28%); }
+}
+@keyframes bd-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+@keyframes bd-unlock {
+  from { transform: scale(0.92); }
+  to { transform: none; }
+}
+@keyframes bd-sheet {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
+@keyframes bd-seg {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes bd-check {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes bd-slide {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes bd-shake {
+  0%, 100% { transform: translateX(0); }
+  35% { transform: translateX(2px); }
+  70% { transform: translateX(-2px); }
+}
+@keyframes bd-pop {
+  from { transform: scale(0.96); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes bd-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.bd-node--current {
+  animation: bd-unlock 300ms var(--bd-ease), bd-ring 700ms var(--bd-ease) 300ms infinite;
+}
+.bd-path__go {
+  animation: bd-float 700ms var(--bd-ease) infinite;
+}
+.bd-nodesheet {
+  animation: bd-sheet 300ms var(--bd-ease);
+}
+.bd-path__seg {
+  position: absolute;
+  z-index: 0;
+  top: 74px;
+  width: 2px;
+  height: calc(100% + 8px);
+  inset-inline-start: 36px;
+  overflow: visible;
+  pointer-events: none;
+}
+.bd-path__item:nth-child(even) .bd-path__seg {
+  inset-inline-start: auto;
+  inset-inline-end: 36px;
+}
+.bd-path__item:last-child .bd-path__seg { display: none; }
+.bd-path__seg line {
+  stroke: var(--bd-navy);
+  stroke-width: 2;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: bd-seg 350ms var(--bd-ease) forwards;
+}
+.bd-node[data-state="done"] [data-bd-icon="check"] path {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: bd-check 350ms var(--bd-ease) forwards;
+}
+.bd-lesson__ok { animation: bd-slide 300ms var(--bd-ease); }
+.bd-lesson__almost { animation: bd-shake 300ms var(--bd-ease) 1; }
+.bd-done { animation: bd-pop 300ms var(--bd-ease); }
+.bd-done__fill { transition: width 350ms var(--bd-ease); }
+
+@media (prefers-reduced-motion: reduce) {
+  .bd-app .bd-node--current,
+  .bd-app .bd-path__go,
+  .bd-app .bd-lesson__almost {
+    animation: none !important;
+  }
+  .bd-app .bd-btn:active {
+    transform: none !important;
+  }
+  .bd-app .bd-nodesheet,
+  .bd-app .bd-lesson__ok,
+  .bd-app .bd-done,
+  .bd-app .bd-path__seg line,
+  .bd-app .bd-node[data-state="done"] [data-bd-icon="check"] path {
+    animation: bd-fade 200ms ease-out !important;
+  }
+}

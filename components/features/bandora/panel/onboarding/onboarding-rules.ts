@@ -1,35 +1,38 @@
-// Pure rules for the three onboarding steps. They mirror server/routes/onboarding.js;
+// Pure rules for placement intake. They mirror server/routes/onboarding.js;
 // the server stays the authority and its field errors are shown if it disagrees.
 
-export const TARGET_BANDS = [5.5, 6, 6.5, 7, 7.5, 8, 8.5] as const;
-export const DAILY_MINUTES = [15, 30, 45, 60, 90] as const;
-/** 0 = Saturday ... 6 = Friday (the Iranian week). */
-export const WEEKDAY_IDS = [0, 1, 2, 3, 4, 5, 6] as const;
+export const TARGET_BANDS = [5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9] as const;
+/** Saved on step 3 so onboarding can finish without a habits form. Saturday–Wednesday. */
+export const DEFAULT_DAILY_MINUTES = 10;
+export const DEFAULT_STUDY_DAYS = [0, 1, 2, 3, 4] as const;
+
+export const PLACEMENT_TIMES = {
+  quick: { listening: 5, reading: 6, writing: 5, speaking: 4, total: 20 },
+  full: { listening: 12, reading: 16, writing: 15, speaking: 12, total: 55 },
+} as const;
 
 export type ExamType = "academic" | "general";
-export type DatePrecision = "exact" | "approx" | "unknown";
+export type PlacementMode = keyof typeof PLACEMENT_TIMES;
+export type DatePrecision = "exact" | "unknown";
 
-export type HabitsDraft = {
+export type GoalDraft = {
+  target: number | null;
   precision: DatePrecision | null;
-  /** `YYYY-MM-DD` for exact, `YYYY-MM` for approx. */
+  /** `YYYY-MM-DD` when precision is exact. */
   date: string;
-  dailyMinutes: number | null;
-  studyDays: number[];
 };
 
-export type HabitsPayload = {
-  step: 3;
+export type GoalPayload = {
+  step: 2;
+  targetBand: number;
   examDatePrecision: DatePrecision;
   examDate?: string;
-  dailyMinutes: number;
-  studyDays: number[];
 };
 
-export type HabitsErrors = Partial<Record<"precision" | "examDate" | "dailyMinutes" | "studyDays", string>>;
+export type GoalErrors = Partial<Record<"target" | "precision" | "examDate", string>>;
+export type GoalResult = { ok: true; payload: GoalPayload } | { ok: false; errors: GoalErrors };
 
-export type HabitsResult = { ok: true; payload: HabitsPayload } | { ok: false; errors: HabitsErrors };
-
-export const emptyHabits = (): HabitsDraft => ({ precision: null, date: "", dailyMinutes: null, studyDays: [] });
+export const emptyGoal = (): GoalDraft => ({ target: null, precision: null, date: "" });
 
 /** The Tehran calendar day (`YYYY-MM-DD`) for an instant. */
 export function tehranToday(now: Date): string {
@@ -43,48 +46,34 @@ export function minExactDate(today: string): string {
   return next.toISOString().slice(0, 10);
 }
 
-/** Approximate exam months may start with the current one. */
-export function minApproxMonth(today: string): string {
-  return today.slice(0, 7);
-}
-
-export function toggleDay(days: readonly number[], day: number): number[] {
-  const next = days.includes(day) ? days.filter((entry) => entry !== day) : [...days, day];
-  return next.sort((a, b) => a - b);
-}
-
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
-const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
-function dateError(draft: HabitsDraft, today: string): string | null {
-  if (draft.precision === "unknown") return null;
-  if (draft.date === "") return "onboarding.error.dateRequired";
-  if (draft.precision === "exact") {
-    if (!DAY_RE.test(draft.date)) return "onboarding.error.dateInvalid";
-    return draft.date < minExactDate(today) ? "onboarding.error.datePast" : null;
-  }
-  if (!MONTH_RE.test(draft.date)) return "onboarding.error.dateInvalid";
-  return draft.date < minApproxMonth(today) ? "onboarding.error.datePast" : null;
+function isTargetBand(value: number | null): value is (typeof TARGET_BANDS)[number] {
+  return value !== null && (TARGET_BANDS as readonly number[]).includes(value);
 }
 
-export function validateHabits(draft: HabitsDraft, today: string): HabitsResult {
-  const errors: HabitsErrors = {};
+export function validateGoal(draft: GoalDraft, today: string): GoalResult {
+  const errors: GoalErrors = {};
+  if (!isTargetBand(draft.target)) errors.target = "onboarding.error.target";
   if (draft.precision === null) errors.precision = "onboarding.error.precision";
-  else {
-    const problem = dateError(draft, today);
-    if (problem) errors.examDate = problem;
+  else if (draft.precision === "exact") {
+    if (draft.date === "") errors.examDate = "onboarding.error.dateRequired";
+    else if (!DAY_RE.test(draft.date)) errors.examDate = "onboarding.error.dateInvalid";
+    else if (draft.date < minExactDate(today)) errors.examDate = "onboarding.error.datePast";
   }
-  if (draft.dailyMinutes === null) errors.dailyMinutes = "onboarding.error.minutes";
-  if (draft.studyDays.length === 0) errors.studyDays = "onboarding.error.days";
-  if (Object.keys(errors).length > 0 || draft.precision === null || draft.dailyMinutes === null) return { ok: false, errors };
+  if (Object.keys(errors).length > 0 || draft.precision === null || !isTargetBand(draft.target)) return { ok: false, errors };
   return {
     ok: true,
     payload: {
-      step: 3,
+      step: 2,
+      targetBand: draft.target,
       examDatePrecision: draft.precision,
-      ...(draft.precision === "unknown" ? {} : { examDate: draft.date }),
-      dailyMinutes: draft.dailyMinutes,
-      studyDays: [...draft.studyDays],
+      ...(draft.precision === "exact" ? { examDate: draft.date } : {}),
     },
   };
+}
+
+/** Step 3 finishes onboarding. Mode is omitted when the learner skips. */
+export function placementStep(mode: PlacementMode | null): { step: 3; placementMode?: PlacementMode } {
+  return mode ? { step: 3, placementMode: mode } : { step: 3 };
 }

@@ -3,6 +3,8 @@ import Link from "@/components/link";
 import { LandingPage } from "@/components/features/bandora/landing-page";
 import { LoginPage } from "@/components/features/bandora/panel/auth/login-page";
 import { HomePage } from "@/components/features/bandora/panel/home-page";
+import { LessonDonePage } from "@/components/features/bandora/panel/home/lesson-done";
+import { LessonStubPage } from "@/components/features/bandora/panel/home/lesson-page";
 import { OnboardingPage } from "@/components/features/bandora/panel/onboarding/onboarding-page";
 import { PlacementIntro } from "@/components/features/bandora/panel/onboarding/placement-intro";
 import { AppShell } from "@/components/features/bandora/panel/shell";
@@ -10,6 +12,8 @@ import { NotificationsPage } from "@/components/features/bandora/panel/shell/not
 import { ProfilePage, SubscriptionPage, UnpublishedSection } from "@/components/features/bandora/panel/account-pages";
 import { AdminReviewPage } from "@/components/features/bandora/panel/admin/admin-review-page";
 import { PlacementPage } from "@/components/features/bandora/panel/placement/placement-page";
+import { PlacementResultPage } from "@/components/features/bandora/panel/placement/result-page";
+import { PlanPage } from "@/components/features/bandora/panel/plan/plan-page";
 import { PracticePage } from "@/components/features/bandora/panel/practice/practice-page";
 import { AssistantPage } from "@/components/features/bandora/panel/assistant/assistant-page";
 import { MockPage } from "@/components/features/bandora/panel/mock/mock-page";
@@ -85,9 +89,12 @@ export function AppRoutes() {
           }
         >
           <Route index element={<HomePage />} />
+          <Route path="lessons/:nodeId/done" element={<LessonDonePage />} />
+          <Route path="lessons/:nodeId" element={<LessonStubPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="placement" element={<PlacementPage />} />
-          <Route path="plan" element={<Placeholder titleKey="nav.plan" />} />
+          <Route path="placement/result" element={<PlacementResultPage />} />
+          <Route path="plan" element={<PlanPage />} />
           <Route path="practice" element={<PracticePage />} />
           <Route path="feedback" element={<UnpublishedSection titleKey="nav.feedback" />} />
           <Route path="progress" element={<UnpublishedSection titleKey="nav.progress" />} />

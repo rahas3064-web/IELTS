@@ -3,12 +3,116 @@ import express from "express";
 import { ApiError } from "../core/errors.js";
 import { parseBody, v } from "../core/validate.js";
 import { scoreCriteria } from "../avalai.js";
+import { addDays, daysBetween, tehranDay, tehranWeekStart } from "../core/tehran-time.js";
 import { ensureBandTables, lookupBand, scaleRaw } from "../services/band-tables.js";
 import { publicItem } from "../services/content-bank.js";
+import { overallBand } from "./mocks.js";
 import { wrap } from "./util.js";
 
 const SKILLS = ["listening", "reading", "writing", "speaking"];
 const answerSchema = v.object({ itemId: v.string({ min: 36, max: 36 }), value: v.string({ min: 0, max: 8000 }) });
+const modeSchema = v.object({ mode: v.oneOf(["quick", "full"]) });
+
+/** Bandora placement clocks in seconds. Not official IELTS timings. */
+export const PLACEMENT_LIMITS_SEC = {
+  quick: { listening: 5 * 60, reading: 6 * 60, writing: 5 * 60, speaking: 4 * 60 },
+  full: { listening: 12 * 60, reading: 16 * 60, writing: 15 * 60, speaking: 12 * 60 },
+};
+
+function limitFor(mode, skill, sectionSec) {
+  const table = PLACEMENT_LIMITS_SEC[mode];
+  return table?.[skill] ?? sectionSec;
+}
+
+/** Original catalogue used only when that exam type has no published placement. */
+async function ensureOriginalPlacement(db, examType) {
+  const existing = await db.query(
+    `select id from placement_versions
+     where exam_type = $1 and status = 'published' and not is_dev_fixture limit 1`,
+    [examType],
+  );
+  if (existing.rows[0]) return;
+  await db.query(
+    `insert into question_types (key, skill, name_fa, name_en, official_description) values
+       ('placement_note', 'listening', 'یادداشت', 'Note', 'Bandora placement note.'),
+       ('placement_tfng', 'reading', 'درست یا نادرست', 'True or false', 'Bandora placement statement.'),
+       ('placement_write', 'writing', 'نوشتن', 'Writing', 'Bandora placement writing task.'),
+       ('placement_cue', 'speaking', 'کارت موضوع', 'Cue', 'Bandora placement speaking cue.')
+     on conflict (key) do nothing`,
+  );
+  const writingPrompt = examType === "general"
+    ? "Write a letter to your building manager about a stair light that has been out since Monday. Say what you need them to do."
+    : "The table below is invented for this placement. Desk A lent 12 books on Monday and 30 on Friday. Desk B lent 8 books on Monday and 8 on Friday. Describe the main numbers in the table.";
+  const passage = "The north courtyard garden opened last spring. Residents water it on Fridays. The benches are free, but ball games are not allowed.";
+  const script = "Neda works at a small city library. She tells a visitor that the quiet room closes at seven, and that laptops are welcome after three.";
+  const tfng = ["True", "False", "Not Given"];
+  const skills = [
+    ["listening", "placement_note", null, [{
+      stem: {
+        prompt: "When does the quiet room close?",
+        promptEn: "When does the quiet room close?",
+        script,
+        options: ["at three", "at seven", "at nine"],
+      },
+      answerKey: { correct: "at seven" },
+    }]],
+    ["reading", "placement_tfng", null, [
+      {
+        stem: {
+          prompt: "Ball games are allowed in the garden.",
+          promptEn: "Ball games are allowed in the garden.",
+          passage,
+          options: tfng,
+        },
+        answerKey: { correct: "False" },
+      },
+      {
+        stem: {
+          prompt: "The garden has a pond.",
+          promptEn: "The garden has a pond.",
+          passage,
+          options: tfng,
+        },
+        answerKey: { correct: "Not Given" },
+      },
+    ]],
+    ["writing", "placement_write", 1, [{ stem: { prompt: writingPrompt, promptEn: writingPrompt }, answerKey: null }]],
+    ["speaking", "placement_cue", 2, [{
+      stem: {
+        prompt: "Describe a quiet place in your neighbourhood where you study.",
+        promptEn: "Describe a quiet place in your neighbourhood where you study.",
+        cue: "Say where it is, when you go there, and why you like it.",
+      },
+      answerKey: null,
+    }]],
+  ];
+  const version = await db.query(
+    `insert into placement_versions (exam_type, version_no, status, reviewed_at)
+     values ($1, (select coalesce(max(version_no), 0) + 1 from placement_versions where exam_type = $1), 'published', now())
+     returning id`,
+    [examType],
+  );
+  let sort = 0;
+  for (const [skill, questionType, partNo, items] of skills) {
+    const section = await db.query(
+      `insert into placement_sections (version_id, skill, time_limit_sec, sort)
+       values ($1, $2, $3, $4) returning id`,
+      [version.rows[0].id, skill, PLACEMENT_LIMITS_SEC.full[skill], sort],
+    );
+    sort += 1;
+    for (const [itemSort, item] of items.entries()) {
+      const saved = await db.query(
+        `insert into content_items (skill, exam_type, question_type, part_no, stem, answer_key, status, is_free, reviewed_at)
+         values ($1, $2, $3, $4, $5::jsonb, $6::jsonb, 'published', true, now()) returning id`,
+        [skill, examType, questionType, partNo, JSON.stringify(item.stem), item.answerKey ? JSON.stringify(item.answerKey) : null],
+      );
+      await db.query(
+        "insert into placement_section_items (section_id, item_id, sort) values ($1, $2, $3)",
+        [section.rows[0].id, saved.rows[0].id, itemSort],
+      );
+    }
+  }
+}
 
 function learnerItem(row, reveal) {
   const item = publicItem(row);
@@ -59,9 +163,15 @@ export function placementRoutes(ctx, { score = scoreCriteria } = {}) {
     ctx.originGuard,
     auth,
     wrap(async (req, res) => {
-      const profile = await ctx.db.query("select exam_type from learner_profiles where user_id = $1", [req.user.id]);
+      const profile = await ctx.db.query(
+        "select exam_type, placement_mode from learner_profiles where user_id = $1",
+        [req.user.id],
+      );
       const examType = profile.rows[0]?.exam_type;
       if (!examType) throw new ApiError(409, "conflict", { fa: "اول آنبوردینگ را تمام کن.", en: "Finish onboarding first." });
+      const requested = req.body && typeof req.body.mode === "string" ? parseBody(modeSchema, { mode: req.body.mode }).mode : null;
+      const mode = requested ?? profile.rows[0]?.placement_mode ?? null;
+      await ensureOriginalPlacement(ctx.db, examType);
       const version = await publishedVersion(examType);
       if (!version) {
         throw new ApiError(404, "not_found", {
@@ -79,8 +189,8 @@ export function placementRoutes(ctx, { score = scoreCriteria } = {}) {
       }
       const created = await ctx.db.transaction(async (tx) => {
         const attempt = await tx.query(
-          `insert into placement_attempts (user_id, version_id) values ($1, $2) returning id`,
-          [req.user.id, version.id],
+          `insert into placement_attempts (user_id, version_id, placement_mode) values ($1, $2, $3) returning id`,
+          [req.user.id, version.id, mode],
         );
         const sections = await tx.query(
           "select skill from placement_sections where version_id = $1",
@@ -105,7 +215,7 @@ export function placementRoutes(ctx, { score = scoreCriteria } = {}) {
       const attempt = await loadAttempt(req.user.id, req.params.id);
       if (!attempt) throw new ApiError(404, "not_found");
       const skills = await ctx.db.query(
-        `select sa.skill, sa.status, sa.band, sa.raw_score, sa.max_score, sa.audio_started_at, s.time_limit_sec
+        `select sa.skill, sa.status, sa.band, sa.raw_score, sa.max_score, sa.audio_started_at, sa.deadline_at, s.time_limit_sec
          from placement_skill_attempts sa
          join placement_sections s on s.version_id = $2 and s.skill = sa.skill
          where sa.attempt_id = $1 order by s.sort`,
@@ -114,6 +224,7 @@ export function placementRoutes(ctx, { score = scoreCriteria } = {}) {
       res.json({
         id: attempt.id,
         status: attempt.status,
+        mode: attempt.placement_mode ?? null,
         overallBand: attempt.overall_band,
         label: attempt.status === "completed" ? "estimate, not an official IELTS score" : null,
         skills: skills.rows.map((row) => ({
@@ -122,7 +233,8 @@ export function placementRoutes(ctx, { score = scoreCriteria } = {}) {
           band: row.band == null ? null : Number(row.band),
           rawScore: row.raw_score,
           maxScore: row.max_score,
-          timeLimitSec: row.time_limit_sec,
+          timeLimitSec: limitFor(attempt.placement_mode, row.skill, row.time_limit_sec),
+          deadlineAt: row.deadline_at,
           audioStarted: Boolean(row.audio_started_at),
         })),
       });
@@ -146,7 +258,7 @@ export function placementRoutes(ctx, { score = scoreCriteria } = {}) {
       }
       const items = await ctx.db.query(
         `select i.id, i.skill, i.exam_type, i.question_type, i.part_no, i.stem, i.is_free, i.audio_id, i.passage_id,
-                i.answer_key, a.is_correct
+                i.answer_key, a.answer, a.is_correct
          from placement_section_items psi
          join placement_sections s on s.id = psi.section_id
          join content_items i on i.id = psi.item_id
@@ -159,6 +271,7 @@ export function placementRoutes(ctx, { score = scoreCriteria } = {}) {
       res.json({
         items: items.rows.map((item) => {
           const shown = learnerItem(item, reveal);
+          shown.savedValue = item.answer?.value ?? "";
           if (req.params.skill === "listening" && row.audio_started_at) shown.audioId = null;
           return shown;
         }),
@@ -179,7 +292,8 @@ export function placementRoutes(ctx, { score = scoreCriteria } = {}) {
       );
       if (!section.rows[0]) throw new ApiError(404, "not_found");
       const at = ctx.now();
-      const deadline = new Date(at.getTime() + section.rows[0].time_limit_sec * 1000);
+      const seconds = limitFor(attempt.placement_mode, req.params.skill, section.rows[0].time_limit_sec);
+      const deadline = new Date(at.getTime() + seconds * 1000);
       const { rows } = await ctx.db.query(
         `update placement_skill_attempts
          set status = 'in_progress', started_at = coalesce(started_at, $3), deadline_at = coalesce(deadline_at, $4)
@@ -311,15 +425,124 @@ export function placementRoutes(ctx, { score = scoreCriteria } = {}) {
           [attempt.id],
         );
         const values = bands.rows.map((row) => (row.band == null ? null : Number(row.band)));
-        const overall = values.length && values.every((n) => n != null)
-          ? Math.round((values.reduce((sum, n) => sum + n, 0) / values.length) * 2) / 2
-          : null;
+        const overall = overallBand(values);
         await ctx.db.query(
           "update placement_attempts set status = 'completed', completed_at = $2, overall_band = $3 where id = $1",
           [attempt.id, ctx.now(), overall],
         );
       }
       res.json({ band, estimate: true, official: false });
+    }),
+  );
+
+  const SKILL_ORDER = ["listening", "reading", "writing", "speaking"];
+
+  async function latestResult(userId, now) {
+    const attempt = await ctx.db.query(
+      `select a.id, a.overall_band from placement_attempts a
+       where a.user_id = $1 and a.status = 'completed'
+       order by a.completed_at desc limit 1`,
+      [userId],
+    );
+    if (!attempt.rows[0]) return null;
+    const skills = await ctx.db.query(
+      "select skill, band from placement_skill_attempts where attempt_id = $1",
+      [attempt.rows[0].id],
+    );
+    const bySkill = new Map(skills.rows.map((row) => [row.skill, row.band == null ? null : Number(row.band)]));
+    const ordered = SKILL_ORDER.map((skill) => ({ skill, band: bySkill.has(skill) ? bySkill.get(skill) : null }));
+    const overall = overallBand(ordered.map((row) => row.band));
+    const known = ordered.filter((row) => row.band != null).map((row) => row.band);
+    const top = known.length ? Math.max(...known) : null;
+    const low = known.length ? Math.min(...known) : null;
+    const profile = await ctx.db.query(
+      `select target_band, to_char(exam_date, 'YYYY-MM-DD') as exam_date, exam_date_precision
+       from learner_profiles where user_id = $1`,
+      [userId],
+    );
+    const row = profile.rows[0] ?? {};
+    const target = row.target_band == null ? null : Number(row.target_band);
+    const dated = row.exam_date_precision === "exact" && row.exam_date ? row.exam_date : null;
+    return {
+      attemptId: attempt.rows[0].id,
+      estimate: true,
+      official: false,
+      overall,
+      target,
+      gap: overall == null || target == null ? null : Math.round((target - overall) * 2) / 2,
+      examDate: dated,
+      daysLeft: dated ? daysBetween(tehranDay(now), dated) : null,
+      skills: ordered.map((item) => ({
+        ...item,
+        note: item.band == null ? "missing" : top !== low && item.band === top ? "strength" : top !== low && item.band === low ? "weak" : "steady",
+      })),
+    };
+  }
+
+  function planBody(result) {
+    const ranked = [...result.skills].sort((a, b) => (a.band ?? 9) - (b.band ?? 9) || SKILL_ORDER.indexOf(a.skill) - SKILL_ORDER.indexOf(b.skill));
+    return {
+      chapterFrom: result.overall,
+      chapterTo: result.overall == null ? null : Math.min(9, result.overall + 0.5),
+      lessons: 3,
+      minuteMin: 5,
+      minuteMax: 10,
+      days: 5,
+      activeDays: [0, 1, 2, 3, 4],
+      priority: ranked.map((row) => row.skill),
+      bands: Object.fromEntries(result.skills.map((row) => [row.skill, row.band])),
+    };
+  }
+
+  router.get(
+    "/placement/result",
+    auth,
+    wrap(async (req, res) => {
+      const result = await latestResult(req.user.id, ctx.now());
+      if (!result) throw new ApiError(404, "not_found");
+      res.json(result);
+    }),
+  );
+
+  router.post(
+    "/placement/plan",
+    ctx.originGuard,
+    auth,
+    wrap(async (req, res) => {
+      const result = await latestResult(req.user.id, ctx.now());
+      if (!result) throw new ApiError(404, "not_found");
+      const body = planBody(result);
+      const week = tehranWeekStart(ctx.now());
+      const id = await ctx.db.transaction(async (tx) => {
+        await tx.query("update study_plans set status = 'superseded' where user_id = $1 and status = 'active'", [req.user.id]);
+        const plan = await tx.query(
+          `insert into study_plans (user_id, week_start, path, phase, inputs) values ($1, $2, 'auto', 1, $3::jsonb) returning id`,
+          [req.user.id, week, JSON.stringify(body)],
+        );
+        const titles = { listening: "شنیدن", reading: "خواندن", writing: "نوشتن", speaking: "صحبت کردن" };
+        for (const [index, skill] of body.priority.slice(0, 3).entries()) {
+          const day = addDays(week, index);
+          await tx.query(
+            `insert into plan_tasks (plan_id, day, sort, skill, kind, title_fa, title_en, minutes, original_day, match_rule)
+             values ($1, $2, $3, $4, 'review', $5, $6, 10, $2, 'skill')`,
+            [plan.rows[0].id, day, index, skill, titles[skill], skill],
+          );
+        }
+        return plan.rows[0].id;
+      });
+      res.status(201).json({ id, ...body });
+    }),
+  );
+
+  router.get(
+    "/plan",
+    auth,
+    wrap(async (req, res) => {
+      const { rows } = await ctx.db.query(
+        `select id, inputs from study_plans where user_id = $1 and status = 'active' order by week_start desc limit 1`,
+        [req.user.id],
+      );
+      res.json({ plan: rows[0] ? { id: rows[0].id, ...rows[0].inputs } : null });
     }),
   );
 

@@ -1,0 +1,1 @@
+original Bandora drawings in a Phosphor-duotone spirit; no Phosphor path data copied; Phosphor Icons are MIT (https://phosphoricons.com). 24×24, stroke 1.75, round caps/joins. Gold only on flame and crown. Sage only on check. `back-rtl` points right (RTL back).

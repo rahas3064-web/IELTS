@@ -20,7 +20,7 @@ export type NavItem = {
 
 const item = (id: NavId, href: string, shortKey?: string): NavItem => ({ id, href, labelKey: `nav.${id}`, shortKey });
 
-const dashboard = item("dashboard", "/app");
+const dashboard = item("dashboard", "/app", "nav.home");
 const plan = item("plan", "/app/plan", "nav.plan.short");
 const practice = item("practice", "/app/practice");
 const mock = item("mock", "/app/mock");
@@ -42,8 +42,8 @@ export const SIDEBAR_BOTTOM: readonly NavItem[] = [profile, subscription];
 
 export const NAV_ITEMS: readonly NavItem[] = [...SIDEBAR_GROUPS.flatMap((group) => group.items), ...SIDEBAR_BOTTOM];
 
-/** Three shortcuts; the fourth bottom-bar slot is the "More" button. */
-export const BOTTOM_NAV_ITEMS: readonly NavItem[] = [dashboard, plan, practice];
+/** خانه، دستیار، تمرین. Everything else lives in More. */
+export const BOTTOM_NAV_ITEMS: readonly NavItem[] = [dashboard, assistant, practice];
 
 const SHORTCUT_IDS = new Set(BOTTOM_NAV_ITEMS.map((entry) => entry.id));
 

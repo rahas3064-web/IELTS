@@ -79,7 +79,7 @@
 .bd-kicker {
   margin: 0;
   color: var(--bd-gold-deep);
-  font-family: var(--bd-font-latin);
+  font-family: var(--bd-font-en);
   font-style: italic;
   font-size: 15px;
 }
@@ -114,7 +114,7 @@
 /* Logo (same as landing) */
 .bd-logo {
   color: var(--bd-navy);
-  font-family: var(--bd-font-latin);
+  font-family: var(--bd-font-logo);
   font-size: 28px;
   font-weight: 600;
   line-height: 1;
@@ -178,6 +178,10 @@
 .bd-app .bd-btn--outline:hover:not(:disabled) {
   background: var(--bd-outline-hover);
   color: var(--bd-navy);
+}
+
+.bd-btn:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .bd-btn:disabled {

@@ -71,6 +71,9 @@ describe("mock band rules", () => {
     expect(overallBand([6, 6, 6, 6.5])).toBe(6);
     expect(overallBand([6, 6.5, 6.5, 6.5])).toBe(6.5);
     expect(overallBand([6, null, 6, 6])).toBeNull();
+    expect(overallBand([6, 5.5, 5, 5.5])).toBe(5.5);
+    expect(overallBand([6, 6, 6.5, 6.5])).toBe(6.5);
+    expect(overallBand([7, 7, 7, 6])).toBe(7);
   });
 });
 
@@ -94,7 +97,8 @@ describe("mock API", () => {
     expect(started.status).toBe(201);
     const id = started.json.attemptId;
     const quota = await device.request("GET", "/api/mocks");
-    expect(quota.json.quota).toMatchObject({ quotaKey: "full_mock", limit: 4, used: 1 });
+    expect(quota.json.cadence).toEqual({ full: "daily", half: "7d" });
+    expect(quota.json.quota.used).toBe(0);
 
     for (const skill of ["listening", "reading", "writing", "speaking"]) {
       expect((await device.request("POST", `/api/mock-attempts/${id}/sections/${skill}/start`)).status).toBe(200);
@@ -125,5 +129,25 @@ describe("mock API", () => {
     const started = await owner.device.request("POST", `/api/mocks/${mockId}/attempts`);
     const other = await learner({ premium: true });
     expect((await other.device.request("GET", `/api/mock-attempts/${started.json.attemptId}`)).status).toBe(404);
+  });
+
+  it("lets a free learner take one half-mock every 7 Tehran days and a premium learner one full mock a day", async () => {
+    const free = await learner();
+    const first = await publishedMock(free.userId);
+    const second = await publishedMock(free.userId);
+    await t.db.query("update mocks set mock_kind = 'half' where id = any($1::uuid[])", [[first.mockId, second.mockId]]);
+    expect((await free.device.request("POST", `/api/mocks/${first.mockId}/attempts`)).status).toBe(201);
+    const early = await free.device.request("POST", `/api/mocks/${second.mockId}/attempts`);
+    expect(early.status).toBe(429);
+    t.clock.advance(7 * 24 * 60 * 60);
+    expect((await free.device.request("POST", `/api/mocks/${second.mockId}/attempts`)).status).toBe(201);
+
+    const premium = await learner({ premium: true });
+    const fullA = await publishedMock(premium.userId);
+    const fullB = await publishedMock(premium.userId);
+    expect((await premium.device.request("POST", `/api/mocks/${fullA.mockId}/attempts`)).status).toBe(201);
+    expect((await premium.device.request("POST", `/api/mocks/${fullB.mockId}/attempts`)).status).toBe(429);
+    t.clock.advance(24 * 60 * 60);
+    expect((await premium.device.request("POST", `/api/mocks/${fullB.mockId}/attempts`)).status).toBe(201);
   });
 });

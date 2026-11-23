@@ -244,7 +244,7 @@ export function MockPage() {
           <Link href="/app/subscription" className="bd-btn bd-btn--solid">{t("mock.upgrade")}</Link>
         </div>
       ) : null}
-      {data && data.enabled ? <p className="bd-hint">{t("mock.quota", { remaining: data.quota.remaining, limit: data.quota.limit })}</p> : null}
+      {data ? <p className="bd-hint">{t("mock.quota")}</p> : null}
       {data && data.enabled && !data.aiReady ? <p className="bd-alert">{t("mock.aiMissing")}</p> : null}
       {data && data.mocks.length === 0 ? <p className="bd-muted">{t("mock.none")}</p> : null}
       {data?.mocks.map((mock) => (
@@ -263,7 +263,7 @@ export function MockPage() {
               {mock.attempt.status === "completed" ? t("mock.viewResult") : t("mock.continue")}
             </button>
           ) : (
-            <button type="button" className="bd-btn bd-btn--solid" disabled={busy || data.quota.remaining <= 0} onClick={() => start(mock.id)}>{t("mock.start")}</button>
+            <button type="button" className="bd-btn bd-btn--solid" disabled={busy} onClick={() => start(mock.id)}>{t("mock.start")}</button>
           )}
         </article>
       ))}

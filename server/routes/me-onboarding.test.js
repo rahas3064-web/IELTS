@@ -17,9 +17,8 @@ async function learner() {
 }
 const put = (device, body) => device.request("PUT", "/api/onboarding", { body });
 const today = () => tehranDay(t.clock.now());
-const step3 = (extra = {}) => ({
-  step: 3, examDatePrecision: "exact", examDate: addDays(today(), 40), dailyMinutes: 45, studyDays: [0, 2, 4], ...extra,
-});
+const goal = (extra = {}) => ({ step: 2, targetBand: 7, examDatePrecision: "unknown", ...extra });
+const step3 = (extra = {}) => ({ step: 3, placementMode: "full", ...extra });
 
 describe("GET /api/me", () => {
   it("returns the documented shape for a brand-new learner", async () => {
@@ -33,6 +32,7 @@ describe("GET /api/me", () => {
       },
       profile: null,
       onboarding: { completed: false, step: 1 },
+      placementCompleted: false,
       subscription: { plan: "free", endsAt: null },
       emailCardDismissed: false,
     });
@@ -80,93 +80,85 @@ describe("PUT /api/onboarding", () => {
     }
   });
 
-  it("step 2 accepts the chip bands or null (unknown) and nothing else", async () => {
+  it("step 2 accepts half-bands from 5.0 to 9.0 and an exact or unknown date", async () => {
     const { device } = await learner();
     await put(device, { step: 1, examType: "academic" });
-    for (const band of [5.5, 6, 6.5, 7, 7.5, 8, 8.5]) {
-      const res = await put(device, { step: 2, targetBand: band });
+    for (const band of [5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9]) {
+      const res = await put(device, goal({ targetBand: band }));
       expect(res.status, String(band)).toBe(200);
       expect(res.json.profile.targetBand).toBe(band);
+      expect(res.json.onboarding.step).toBe(3);
     }
-    const unknown = await put(device, { step: 2, targetBand: null });
-    expect(unknown.status).toBe(200);
-    expect(unknown.json.profile.targetBand).toBeNull();
-    for (const bad of [5, 9, 6.25, "7", undefined]) {
-      expect((await put(device, { step: 2, targetBand: bad })).status, String(bad)).toBe(400);
+    for (const bad of [4.5, 9.5, 6.25, null, "7", undefined]) {
+      expect((await put(device, goal({ targetBand: bad }))).status, String(bad)).toBe(400);
     }
+    expect((await put(device, goal({ examDatePrecision: "approx", examDate: "2027-04" }))).status).toBe(400);
   });
 
   it("steps 2 and 3 need step 1 first", async () => {
     const { device } = await learner();
-    const two = await put(device, { step: 2, targetBand: 7 });
+    const two = await put(device, goal());
     expect(two.status).toBe(400);
     expect(two.json.error.details.field).toBe("step");
     expect((await put(device, step3())).status).toBe(400);
   });
 
-  it("step 3 validates exam date, minutes and study days", async () => {
+  it("step 2 rejects a missing, past, or invalid exam date", async () => {
     const { device } = await learner();
     await put(device, { step: 1, examType: "academic" });
     const bad = [
-      step3({ examDate: addDays(today(), -1) }),
-      step3({ examDate: today() }),
-      step3({ examDate: "2026-13-40" }),
-      step3({ examDate: "soon" }),
-      step3({ examDate: undefined }),
-      step3({ examDatePrecision: "approx", examDate: addDays(today(), 40) }),
-      step3({ examDatePrecision: "approx", examDate: "2020-01" }),
-      step3({ examDatePrecision: "never" }),
-      step3({ dailyMinutes: 5 }),
-      step3({ dailyMinutes: 241 }),
-      step3({ dailyMinutes: 45.5 }),
-      step3({ studyDays: [] }),
-      step3({ studyDays: [7] }),
-      step3({ studyDays: [-1] }),
-      step3({ studyDays: [1, 1] }),
-      step3({ studyDays: "1,2" }),
+      goal({ examDatePrecision: "exact", examDate: addDays(today(), -1) }),
+      goal({ examDatePrecision: "exact", examDate: today() }),
+      goal({ examDatePrecision: "exact", examDate: "2026-13-40" }),
+      goal({ examDatePrecision: "exact", examDate: "soon" }),
+      goal({ examDatePrecision: "exact" }),
+      goal({ examDatePrecision: "never" }),
     ];
     for (const body of bad) expect((await put(device, body)).status, JSON.stringify(body)).toBe(400);
     expect((await device.request("GET", "/api/me")).json.onboarding.completed).toBe(false);
   });
 
-  it("completes onboarding with an exact date", async () => {
+  it("completes onboarding with the default week and the chosen mode", async () => {
     const { device, user } = await learner();
     await put(device, { step: 1, examType: "academic" });
-    await put(device, { step: 2, targetBand: 7 });
     const examDate = addDays(today(), 30);
-    const res = await put(device, step3({ examDate }));
+    await put(device, goal({ examDatePrecision: "exact", examDate }));
+    const res = await put(device, step3());
     expect(res.status).toBe(200);
     expect(res.json.onboarding).toEqual({ completed: true, step: null });
+    expect(res.json.placementCompleted).toBe(false);
     expect(res.json.profile).toMatchObject({
-      examType: "academic", targetBand: 7, examDate, examDatePrecision: "exact", dailyMinutes: 45, studyDays: [0, 2, 4],
+      examType: "academic", targetBand: 7, examDate, examDatePrecision: "exact",
+      dailyMinutes: 10, studyDays: [0, 1, 2, 3, 4], placementMode: "full",
     });
     const { rows } = await t.db.query("select onboarding_completed_at from learner_profiles where user_id = $1", [user.id]);
     expect(rows[0].onboarding_completed_at).not.toBeNull();
-    expect((await device.request("GET", "/api/me")).json.onboarding.completed).toBe(true);
   });
 
-  it("stores an approximate month as its first day with precision 'approx'", async () => {
+  it("skip finishes onboarding without a placement mode", async () => {
     const { device } = await learner();
     await put(device, { step: 1, examType: "general" });
-    const month = addDays(today(), 70).slice(0, 7);
-    const res = await put(device, step3({ examDatePrecision: "approx", examDate: month, studyDays: [6] }));
+    await put(device, goal({ targetBand: 5 }));
+    const res = await put(device, { step: 3 });
     expect(res.status).toBe(200);
-    expect(res.json.profile).toMatchObject({ examDate: `${month}-01`, examDatePrecision: "approx" });
-  });
-
-  it("allows an unknown exam date and stores no date", async () => {
-    const { device } = await learner();
-    await put(device, { step: 1, examType: "general" });
-    const res = await put(device, step3({ examDatePrecision: "unknown", examDate: undefined, dailyMinutes: 90 }));
-    expect(res.status).toBe(200);
-    expect(res.json.profile).toMatchObject({ examDate: null, examDatePrecision: "unknown", dailyMinutes: 90 });
     expect(res.json.onboarding.completed).toBe(true);
+    expect(res.json.profile).toMatchObject({
+      examDate: null, examDatePrecision: "unknown", dailyMinutes: 10, studyDays: [0, 1, 2, 3, 4], placementMode: null,
+    });
+  });
+
+  it("rejects a bad placement mode and mode before the goal is saved", async () => {
+    const { device } = await learner();
+    await put(device, { step: 1, examType: "academic" });
+    expect((await put(device, { step: 3, placementMode: "official" })).status).toBe(400);
+    expect((await put(device, { step: 3 })).status).toBe(400);
+    expect((await device.request("GET", "/api/me")).json.onboarding.completed).toBe(false);
   });
 
   it("resumes at step 3 once a target band is saved, and keeps completion when steps are edited later", async () => {
     const { device } = await learner();
     await put(device, { step: 1, examType: "academic" });
-    expect((await put(device, { step: 2, targetBand: 6.5 })).json.onboarding.step).toBe(3);
+    expect((await put(device, goal({ targetBand: 6.5 }))).json.onboarding.step).toBe(3);
     await put(device, step3());
     const edited = await put(device, { step: 1, examType: "general" });
     expect(edited.json.onboarding).toEqual({ completed: true, step: null });

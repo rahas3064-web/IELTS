@@ -11,6 +11,18 @@ export type FrameData = {
     past?: boolean;
   };
   planToday: { total: number; done: number };
+  dailyGoal: { done: number; total: number };
+  path: {
+    mode: "start" | "plan" | "mid";
+    chapters: {
+      key: string;
+      titleFa: string | null;
+      from: number;
+      to: number;
+      locked: boolean;
+      nodes: { id: string; kind: string; premium: boolean; state: string }[];
+    }[];
+  };
 };
 
 export type FrameValue = {

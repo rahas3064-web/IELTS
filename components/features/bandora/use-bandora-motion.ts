@@ -1,4 +1,22 @@
 import { useEffect, useState, type RefObject } from "react";
+
+/** The streak number to show first, then the real value. Reduced motion skips the step. */
+export function streakStep(current: number, continued: boolean, reduce: boolean) {
+  if (reduce || !continued) return { from: current, to: current };
+  return { from: Math.max(0, current - 1), to: current };
+}
+
+export function usePrefersReducedMotion() {
+  const [reduce, setReduce] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const apply = () => setReduce(query.matches);
+    apply();
+    query.addEventListener("change", apply);
+    return () => query.removeEventListener("change", apply);
+  }, []);
+  return reduce;
+}
 import { isMobileWidth, timelineFromCenters, timelineKey, type Timeline } from "@/components/features/bandora/content";
 
 export function useMobileWidth(): boolean {

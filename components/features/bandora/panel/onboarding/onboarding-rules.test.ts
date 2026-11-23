@@ -1,98 +1,95 @@
 import { describe, expect, it } from "vitest";
 import {
-  DAILY_MINUTES,
+  DEFAULT_DAILY_MINUTES,
+  DEFAULT_STUDY_DAYS,
+  PLACEMENT_TIMES,
   TARGET_BANDS,
-  WEEKDAY_IDS,
-  emptyHabits,
+  emptyGoal,
   minExactDate,
-  minApproxMonth,
+  placementStep,
   tehranToday,
-  toggleDay,
-  validateHabits,
+  validateGoal,
 } from "@/components/features/bandora/panel/onboarding/onboarding-rules";
 
 const TODAY = "2026-11-10";
 
 describe("option lists", () => {
-  it("match the spec", () => {
-    expect(TARGET_BANDS).toEqual([5.5, 6, 6.5, 7, 7.5, 8, 8.5]);
-    expect(DAILY_MINUTES).toEqual([15, 30, 45, 60, 90]);
-    expect(WEEKDAY_IDS).toEqual([0, 1, 2, 3, 4, 5, 6]);
+  it("matches the placement intake spec", () => {
+    expect(TARGET_BANDS).toEqual([5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9]);
+    expect(DEFAULT_DAILY_MINUTES).toBe(10);
+    expect(DEFAULT_STUDY_DAYS).toEqual([0, 1, 2, 3, 4]);
+    expect(PLACEMENT_TIMES.quick).toEqual({ listening: 5, reading: 6, writing: 5, speaking: 4, total: 20 });
+    expect(PLACEMENT_TIMES.full).toEqual({ listening: 12, reading: 16, writing: 15, speaking: 12, total: 55 });
   });
 });
 
 describe("tehranToday", () => {
   it("uses the Tehran calendar day, not UTC", () => {
-    // 21:00 UTC on the 10th is already 00:30 on the 11th in Tehran (UTC+3:30).
     expect(tehranToday(new Date("2026-11-10T21:00:00Z"))).toBe("2026-11-11");
     expect(tehranToday(new Date("2026-11-10T12:00:00Z"))).toBe("2026-11-10");
   });
 
-  it("derives the earliest allowed dates", () => {
+  it("derives the earliest allowed exact date", () => {
     expect(minExactDate(TODAY)).toBe("2026-11-11");
     expect(minExactDate("2026-12-31")).toBe("2027-01-01");
-    expect(minApproxMonth(TODAY)).toBe("2026-11");
   });
 });
 
-describe("toggleDay", () => {
-  it("adds and removes days without mutating the input, keeping order", () => {
-    const start = [0, 2];
-    expect(toggleDay(start, 1)).toEqual([0, 1, 2]);
-    expect(toggleDay(start, 2)).toEqual([0]);
-    expect(start).toEqual([0, 2]);
-  });
-});
-
-describe("validateHabits", () => {
-  const ready = { ...emptyHabits(), dailyMinutes: 45, studyDays: [0, 2, 4] };
-
-  it("builds an exact-date payload", () => {
-    const result = validateHabits({ ...ready, precision: "exact", date: "2027-01-20" }, TODAY);
+describe("validateGoal", () => {
+  it("builds an exact-date payload for a half-band from 5.0 to 9.0", () => {
+    const result = validateGoal({ ...emptyGoal(), target: 5, precision: "exact", date: "2027-01-20" }, TODAY);
     expect(result).toEqual({
       ok: true,
-      payload: { step: 3, examDatePrecision: "exact", examDate: "2027-01-20", dailyMinutes: 45, studyDays: [0, 2, 4] },
+      payload: { step: 2, targetBand: 5, examDatePrecision: "exact", examDate: "2027-01-20" },
+    });
+    expect(validateGoal({ ...emptyGoal(), target: 9, precision: "unknown", date: "" }, TODAY)).toMatchObject({
+      ok: true,
+      payload: { targetBand: 9, examDatePrecision: "unknown" },
     });
   });
 
-  it("builds an approximate-month payload", () => {
-    const result = validateHabits({ ...ready, precision: "approx", date: "2027-02" }, TODAY);
-    expect(result).toMatchObject({ ok: true, payload: { examDatePrecision: "approx", examDate: "2027-02" } });
-  });
-
-  it("omits the date when unknown", () => {
-    const result = validateHabits({ ...ready, precision: "unknown", date: "2027-02" }, TODAY);
+  it("omits the date when the learner does not know it yet", () => {
+    const result = validateGoal({ ...emptyGoal(), target: 6.5, precision: "unknown", date: "2027-02-01" }, TODAY);
     expect(result.ok).toBe(true);
     if (result.ok) expect("examDate" in result.payload).toBe(false);
   });
 
-  it("requires a date precision choice", () => {
-    expect(validateHabits({ ...ready, precision: null }, TODAY)).toMatchObject({
+  it("requires a target band and a date choice", () => {
+    expect(validateGoal({ ...emptyGoal(), precision: "unknown" }, TODAY)).toMatchObject({
+      ok: false,
+      errors: { target: "onboarding.error.target" },
+    });
+    expect(validateGoal({ ...emptyGoal(), target: 6 }, TODAY)).toMatchObject({
       ok: false,
       errors: { precision: "onboarding.error.precision" },
     });
+    expect(validateGoal({ ...emptyGoal(), target: 6.25, precision: "unknown" }, TODAY)).toMatchObject({
+      ok: false,
+      errors: { target: "onboarding.error.target" },
+    });
   });
 
-  it("requires a date for exact and approximate, and it must be in the future", () => {
-    expect(validateHabits({ ...ready, precision: "exact", date: "" }, TODAY)).toMatchObject({
+  it("requires a future exact date", () => {
+    const withBand = { ...emptyGoal(), target: 7 as const };
+    expect(validateGoal({ ...withBand, precision: "exact", date: "" }, TODAY)).toMatchObject({
       ok: false,
       errors: { examDate: "onboarding.error.dateRequired" },
     });
-    expect(validateHabits({ ...ready, precision: "exact", date: TODAY }, TODAY)).toMatchObject({
+    expect(validateGoal({ ...withBand, precision: "exact", date: TODAY }, TODAY)).toMatchObject({
       ok: false,
       errors: { examDate: "onboarding.error.datePast" },
     });
-    expect(validateHabits({ ...ready, precision: "approx", date: "2026-10" }, TODAY)).toMatchObject({
+    expect(validateGoal({ ...withBand, precision: "exact", date: "soon" }, TODAY)).toMatchObject({
       ok: false,
-      errors: { examDate: "onboarding.error.datePast" },
+      errors: { examDate: "onboarding.error.dateInvalid" },
     });
   });
+});
 
-  it("requires daily minutes and at least one study day", () => {
-    const result = validateHabits({ ...emptyHabits(), precision: "unknown" }, TODAY);
-    expect(result).toMatchObject({
-      ok: false,
-      errors: { dailyMinutes: "onboarding.error.minutes", studyDays: "onboarding.error.days" },
-    });
+describe("placementStep", () => {
+  it("sends the mode when chosen and omits it when skipping", () => {
+    expect(placementStep("quick")).toEqual({ step: 3, placementMode: "quick" });
+    expect(placementStep("full")).toEqual({ step: 3, placementMode: "full" });
+    expect(placementStep(null)).toEqual({ step: 3 });
   });
 });

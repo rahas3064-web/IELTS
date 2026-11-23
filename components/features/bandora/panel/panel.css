@@ -6,4 +6,7 @@
 @import "./subscription.css";
 @import "./assistant.css";
 @import "./mock.css";
+@import "./placement.css";
+@import "./home/lesson.css";
+@import "./motion.css";
 @import "../legal/legal.css";

@@ -86,6 +86,14 @@ describe("placement_attempts", () => {
     await expectViolation(attempt({ status: "finished" }), /placement_attempts_status_valid/);
   });
 
+  it("stores quick or full on the attempt and rejects any other mode", async () => {
+    const quick = await attempt({ placement_mode: "quick" });
+    const full = await attempt({ placement_mode: "full" });
+    expect(quick.placement_mode).toBe("quick");
+    expect(full.placement_mode).toBe("full");
+    await expectViolation(attempt({ placement_mode: "official" }), /placement_attempts_mode_valid/);
+  });
+
   it("has no summary column and is removed with the user", async () => {
     const cols = await db.query("select column_name from information_schema.columns where table_name = 'placement_attempts'");
     expect(cols.rows.map((r) => r.column_name)).not.toContain("summary");

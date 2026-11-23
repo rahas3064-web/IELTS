@@ -12,6 +12,7 @@
   --bd-navy: #1F2E54;
   --bd-gold: #B08D4A;
   --bd-gold-deep: #7A5C1E;
+  --bd-bluegray: #7A8FB0;
   --bd-border: #D9CFBB;
   --bd-border-soft: #E1D8C2;
   --bd-green: #4E7B62;
@@ -29,6 +30,11 @@
 
   /* Muted red derived from the palette for error text: always paired with an icon or words. [DEFAULT - adjustable] */
   --bd-danger: #8C3B2F;
+  --bd-tint: #C9CEDC;
+  --bd-nav-inactive: #E8E2D4;
+  --bd-check-fill: #D5E0D8;
+  --bd-wrong-bg: #F7F0EB;
+  --bd-wrong-edge: #E8D8CF;
 
   /* Shape */
   --bd-radius: 6px;
@@ -38,10 +44,12 @@
   --bd-ease: cubic-bezier(.22, 1, .36, 1);
   --bd-dur: 250ms;
 
-  /* Type: Persian is Vazirmatn body with Estedad display; English is serif with Playfair / Cormorant display. */
+  /* Type: Vazirmatn body, Estedad display, Playfair logo only, Newsreader for English snippets. */
   --bd-font-body: Vazirmatn, sans-serif;
   --bd-font-display: Estedad, Vazirmatn, sans-serif;
-  --bd-font-latin: "Playfair Display", Georgia, serif;
+  --bd-font-logo: "Playfair Display", Georgia, serif;
+  --bd-font-en: Newsreader, Georgia, serif;
+  --bd-font-latin: Newsreader, Georgia, serif;
   --bd-font-label: "Cormorant Garamond", Georgia, serif;
 }
 

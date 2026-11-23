@@ -46,6 +46,11 @@ describe("GET /api/frame", () => {
       streak: { current: 0, best: 0, activeToday: false },
       examCountdown: { days: null, date: null, precision: null, past: false },
       planToday: { total: 0, done: 0 },
+      dailyGoal: { done: 0, total: 3 },
+      path: {
+        mode: "start",
+        chapters: [expect.objectContaining({ key: "c1", from: 5, to: 5.5, locked: false })],
+      },
     });
   });
 

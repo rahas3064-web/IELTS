@@ -3,6 +3,7 @@ import { LogOut } from "lucide-react";
 import Link from "@/components/link";
 import { useT } from "@/src/i18n";
 import { Modal } from "@/components/features/bandora/panel/ui/modal";
+import { BdIcon } from "@/components/features/bandora/panel/icons/bd-icon";
 import { NAV_ICONS } from "@/components/features/bandora/panel/shell/nav-icons";
 import { MORE_ITEMS, isNavActive } from "@/components/features/bandora/panel/shell/nav-items";
 import { useLogout } from "@/components/features/bandora/panel/shell/use-logout";
@@ -16,7 +17,6 @@ export function MoreSheet({ open, onClose }: { open: boolean; onClose: () => voi
     <Modal open={open} onClose={onClose} title={t("nav.more")}>
       <nav aria-label={t("nav.more")} className="bd-more">
         {MORE_ITEMS.map((item) => {
-          const Icon = NAV_ICONS[item.id];
           return (
             <Link
               key={item.id}
@@ -25,7 +25,7 @@ export function MoreSheet({ open, onClose }: { open: boolean; onClose: () => voi
               aria-current={isNavActive(pathname, item.href) ? "page" : undefined}
               onClick={onClose}
             >
-              <Icon size={18} strokeWidth={1.6} aria-hidden />
+              <BdIcon name={NAV_ICONS[item.id]} active={isNavActive(pathname, item.href)} size={22} />
               <span>{t(item.labelKey)}</span>
             </Link>
           );

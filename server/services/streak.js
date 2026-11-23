@@ -15,6 +15,13 @@ import { addDays, tehranDay, weekdayIndex } from "../core/tehran-time.js";
 
 const ZERO = Object.freeze({ current: 0, best: 0, activeToday: false });
 
+/** Today's lesson goal is always out of 3, never above 3 and never negative. */
+export function dailyGoal(done) {
+  const value = Number(done);
+  const safe = Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : 0;
+  return { done: Math.min(3, safe), total: 3 };
+}
+
 /** @param {string} day @param {StreakOptions} opts */
 const isRestDay = (day, { skipRestDays = false, studyDays = [] }) =>
   skipRestDays && !studyDays.includes(weekdayIndex(day));
@@ -107,7 +114,7 @@ const SETTINGS_COLUMNS = `
   coalesce((select value = 'true'::jsonb from system_settings where key = 'streak_skip_rest_days'), false) as skip_rest_days,
   (select study_days from learner_profiles where user_id = $1) as study_days`;
 
-/** Every Tehran day with finished activity (practice, placement skill, mock section). */
+/** Every Tehran day with finished activity (practice, placement skill, mock section, or lesson). */
 const ACTIVITY_DAYS_SQL = `
   select to_char(d, 'YYYY-MM-DD') as day from (
     select (completed_at at time zone 'Asia/Tehran')::date as d
@@ -120,6 +127,9 @@ const ACTIVITY_DAYS_SQL = `
     select (s.completed_at at time zone 'Asia/Tehran')::date
       from mock_section_attempts s join mock_attempts a on a.id = s.mock_attempt_id
       where a.user_id = $1 and s.status = 'completed'
+    union
+    select (completed_at at time zone 'Asia/Tehran')::date
+      from lesson_runs where user_id = $1 and completed_at is not null
   ) days order by 1`;
 
 /** @param {{skip_rest_days?: boolean, study_days?: unknown[]|null}} row @returns {StreakOptions} */

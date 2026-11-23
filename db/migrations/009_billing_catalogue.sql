@@ -18,9 +18,10 @@ insert into ai_quota_configs (plan_key, quota_key, monthly_limit) values
   ('premium_monthly', 'writing_scoring', 30),
   ('premium_monthly', 'speaking_scoring', 30),
   ('premium_monthly', 'assistant_messages', 150),
-  ('premium_monthly', 'full_mock', 4),
+  -- Full mocks are once per Tehran day, not a monthly grant. See 020.
+  ('premium_monthly', 'full_mock', 0),
   ('premium_quarterly', 'writing_scoring', 30),
   ('premium_quarterly', 'speaking_scoring', 30),
   ('premium_quarterly', 'assistant_messages', 150),
-  ('premium_quarterly', 'full_mock', 4)
+  ('premium_quarterly', 'full_mock', 0)
 on conflict (plan_key, quota_key) do nothing;

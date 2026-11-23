@@ -9,14 +9,14 @@ beforeAll(async () => {
 });
 afterAll(() => t.close());
 
-async function learner() {
+async function learner(examType = "academic") {
   const phone = freshPhone();
   const device = t.client();
   const signed = await t.signUp(device, phone);
   await t.db.query(
     `insert into learner_profiles (user_id, exam_type, exam_date_precision, daily_minutes, study_days, onboarding_completed_at)
-     values ($1, 'academic', 'unknown', 30, '{6}', now())`,
-    [signed.json.user.id],
+     values ($1, $2, 'unknown', 30, '{6}', now())`,
+    [signed.json.user.id, examType],
   );
   return { device, userId: signed.json.user.id };
 }
@@ -30,10 +30,45 @@ describe("objective scaling", () => {
 });
 
 describe("placement and practice gates", () => {
-  it("refuses placement when nothing is published", async () => {
+  it("seeds an original placement when the bank is empty", async () => {
     const { device } = await learner();
     const res = await device.request("POST", "/api/placement/attempts");
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(201);
+    const id = res.json.attemptId;
+    expect((await device.request("POST", `/api/placement/attempts/${id}/skills/listening/start`)).status).toBe(200);
+    const paper = await device.request("GET", `/api/placement/attempts/${id}/skills/listening`);
+    const text = JSON.stringify(paper.json);
+    expect(text.toLowerCase()).not.toMatch(/cambridge|ielts\.org/);
+    expect(text).toContain("quiet room");
+    const view = await device.request("GET", `/api/placement/attempts/${id}`);
+    expect(view.json.skills.map((row) => row.timeLimitSec)).toEqual([12 * 60, 16 * 60, 15 * 60, 12 * 60]);
+
+    expect((await device.request("POST", `/api/placement/attempts/${id}/skills/reading/start`)).status).toBe(200);
+    const reading = await device.request("GET", `/api/placement/attempts/${id}/skills/reading`);
+    expect(reading.json.items).toHaveLength(2);
+    for (const item of reading.json.items) {
+      expect(item.stem.options.map((option) => option.toLowerCase())).toEqual(["true", "false", "not given"]);
+    }
+    const keys = await t.db.query(
+      `select stem->>'prompt' as prompt, answer_key->>'correct' as correct
+       from content_items where question_type = 'placement_tfng' and exam_type = 'academic'`,
+    );
+    expect(keys.rows.find((row) => /ball games/i.test(row.prompt)).correct.toLowerCase()).toBe("false");
+    expect(keys.rows.some((row) => row.correct.toLowerCase() === "not given")).toBe(true);
+    expect(JSON.stringify(reading.json).toLowerCase()).not.toMatch(/cambridge|ielts\.org/);
+
+    expect((await device.request("POST", `/api/placement/attempts/${id}/skills/writing/start`)).status).toBe(200);
+    const writing = await device.request("GET", `/api/placement/attempts/${id}/skills/writing`);
+    const stem = writing.json.items[0].stem.prompt;
+    expect(stem.toLowerCase()).toMatch(/table|chart|process/);
+    expect(stem.toLowerCase()).not.toMatch(/routine|advice|evenings|opinion/);
+
+    const general = await learner("general");
+    const generalAttempt = await general.device.request("POST", "/api/placement/attempts");
+    const generalId = generalAttempt.json.attemptId;
+    expect((await general.device.request("POST", `/api/placement/attempts/${generalId}/skills/writing/start`)).status).toBe(200);
+    const letter = await general.device.request("GET", `/api/placement/attempts/${generalId}/skills/writing`);
+    expect(letter.json.items[0].stem.prompt.toLowerCase()).toMatch(/letter/);
   });
 
   it("locks a paid practice set and scores a published free listening set", async () => {
@@ -139,6 +174,39 @@ describe("placement runner", () => {
       await t.db.query("update placement_versions set status = 'draft' where id = $1", [versionId]);
     }
   });
+
+  it("uses Quick and Full clocks, plays listening once, and resumes the open attempt", async () => {
+    const quick = await learner();
+    const full = await learner();
+    await t.db.query("update learner_profiles set placement_mode = 'quick' where user_id = $1", [quick.userId]);
+    await t.db.query("update learner_profiles set placement_mode = 'full' where user_id = $1", [full.userId]);
+    const { versionId } = await publishedPlacement(quick.userId);
+    try {
+      const started = await quick.device.request("POST", "/api/placement/attempts");
+      const id = started.json.attemptId;
+      const view = await quick.device.request("GET", `/api/placement/attempts/${id}`);
+      expect(view.json.mode).toBe("quick");
+      expect(view.json.skills.map((row) => row.timeLimitSec)).toEqual([5 * 60, 6 * 60]);
+      const began = await quick.device.request("POST", `/api/placement/attempts/${id}/skills/listening/start`);
+      const deadline = new Date(began.json.deadlineAt).getTime();
+      expect(Math.abs(deadline - (t.clock.now().getTime() + 5 * 60 * 1000))).toBeLessThan(2000);
+
+      const fullStart = await full.device.request("POST", "/api/placement/attempts");
+      const fullView = await full.device.request("GET", `/api/placement/attempts/${fullStart.json.attemptId}`);
+      expect(fullView.json.mode).toBe("full");
+      expect(fullView.json.skills.map((row) => row.timeLimitSec)).toEqual([12 * 60, 16 * 60]);
+
+      expect((await quick.device.request("POST", `/api/placement/attempts/${id}/listening/audio`)).status).toBe(200);
+      const again = await quick.device.request("POST", `/api/placement/attempts/${id}/listening/audio`);
+      expect(again.json.started).toBe(true);
+      const hidden = await quick.device.request("GET", `/api/placement/attempts/${id}/skills/listening`);
+      expect(hidden.json.items.every((item) => item.audioId == null)).toBe(true);
+      const current = await quick.device.request("GET", "/api/placement/current");
+      expect(current.json.attempt.id).toBe(id);
+    } finally {
+      await t.db.query("update placement_versions set status = 'draft' where id = $1", [versionId]);
+    }
+  });
 });
 
 describe("free vs premium practice", () => {
@@ -215,5 +283,52 @@ describe("free vs premium practice", () => {
     expect(submitted.json.error.details).toMatchObject({ quotaKey: "writing_scoring", limit: 2 });
     const saved = await t.db.query("select count(*)::int as n from practice_answers where attempt_id = $1", [started.json.attemptId]);
     expect(saved.rows[0].n).toBe(0);
+  });
+});
+
+describe("placement result and plan", () => {
+  it("rounds the demo bands to 5.5 and writes a plan only when asked", async () => {
+    const { device, userId } = await learner();
+    await t.db.query(
+      `update learner_profiles set target_band = 6.5, exam_date = '2027-03-06', exam_date_precision = 'exact' where user_id = $1`,
+      [userId],
+    );
+    const version = await t.db.query(
+      `insert into placement_versions (exam_type, version_no, status, reviewed_at)
+       values ('academic', (select coalesce(max(version_no), 0) + 1 from placement_versions), 'published', now()) returning id`,
+    );
+    const attempt = await t.db.query(
+      `insert into placement_attempts (user_id, version_id, status, completed_at, overall_band, placement_mode)
+       values ($1, $2, 'completed', now(), 9, 'full') returning id`,
+      [userId, version.rows[0].id],
+    );
+    for (const [skill, band] of [["listening", 6], ["reading", 5.5], ["writing", 5], ["speaking", 5.5]]) {
+      await t.db.query(
+        `insert into placement_skill_attempts (attempt_id, skill, status, started_at, deadline_at, completed_at, band)
+         values ($1, $2, 'completed', now(), now(), now(), $3)`,
+        [attempt.rows[0].id, skill, band],
+      );
+    }
+    const before = await t.db.query("select count(*)::int as n from study_plans where user_id = $1", [userId]);
+    const result = await device.request("GET", "/api/placement/result");
+    expect(result.status).toBe(200);
+    expect(result.json.overall).toBe(5.5);
+    expect(result.json.gap).toBe(1);
+    expect(result.json.estimate).toBe(true);
+    expect(result.json.official).toBe(false);
+    expect(result.json.skills.find((row) => row.skill === "writing").note).toBe("weak");
+    expect(result.json.skills.find((row) => row.skill === "listening").note).toBe("strength");
+    const idle = await device.request("GET", "/api/plan");
+    expect(idle.json.plan).toBeNull();
+    expect((await t.db.query("select count(*)::int as n from study_plans where user_id = $1", [userId])).rows[0].n).toBe(before.rows[0].n);
+
+    const saved = await device.request("POST", "/api/placement/plan");
+    expect(saved.status).toBe(201);
+    expect(saved.json).toMatchObject({ chapterFrom: 5.5, chapterTo: 6, lessons: 3, days: 5, priority: ["writing", "reading", "speaking", "listening"] });
+    const again = await device.request("GET", "/api/placement/result");
+    const current = await device.request("GET", "/api/plan");
+    expect(current.json.plan.id).toBe(saved.json.id);
+    expect(again.json.overall).toBe(5.5);
+    expect((await t.db.query("select count(*)::int as n from study_plans where user_id = $1 and status = 'active'", [userId])).rows[0].n).toBe(1);
   });
 });

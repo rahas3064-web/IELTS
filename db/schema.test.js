@@ -65,7 +65,7 @@ describe("migration files", () => {
     for (const { path: file, version } of await listMigrations(dir)) {
       const sql = (await fs.readFile(file, "utf8")).replace(/--.*$/gm, "").toLowerCase();
       const withoutRls = sql.replace(/alter table\b[^;]*\benable row level security\b/g, "");
-      if (version !== "016_speaking_score_state" && version !== "017_password_without_email") {
+      if (version !== "016_speaking_score_state" && version !== "017_password_without_email" && version !== "018_placement_intake" && version !== "019_placement_mode" && version !== "020_mock_cadence") {
         expect(withoutRls).not.toMatch(/\balter table\b/);
       }
       expect(sql).not.toMatch(/create extension/);
@@ -278,9 +278,9 @@ describe("learner_profiles", () => {
     expect(rows[0].onboarding_completed_at).toBeNull();
   });
 
-  it("accepts only half-band targets between 5.5 and 8.5 (or null)", async () => {
-    for (const band of [5.5, 6, 6.5, 7, 7.5, 8, 8.5]) expect((await profile({ target_band: band })).rows[0].target_band).toBe(String(band.toFixed(1)));
-    for (const band of [5, 9, 6.25, 8.6]) {
+  it("accepts only half-band targets between 5.0 and 9.0 (or null)", async () => {
+    for (const band of [5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9]) expect((await profile({ target_band: band })).rows[0].target_band).toBe(String(band.toFixed(1)));
+    for (const band of [4.5, 9.5, 6.25]) {
       await expectViolation(profile({ target_band: band }), /learner_profiles_target_band_valid/);
     }
     expect((await profile({ target_band: null })).rows[0].target_band).toBeNull();

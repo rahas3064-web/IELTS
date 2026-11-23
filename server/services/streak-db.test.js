@@ -72,6 +72,17 @@ describe("recordActivity", () => {
     expect(await recordActivity(db, user.id, at("2026-11-08T10:00:00Z"))).toMatchObject({ current: 1, best: 3 });
   });
 
+  it("counts a finished lesson on an earlier Tehran day in the same run", async () => {
+    const user = await newLearner(db);
+    const node = (await db.query("select id from path_nodes where chapter_key = 'c1' and kind = 'lesson'")).rows[0];
+    await db.query(
+      "insert into lesson_runs (user_id, node_id, stage, completed_at) values ($1, $2, 'review', $3)",
+      [user.id, node.id, at("2026-11-09T10:00:00Z")],
+    );
+    await completedPractice(db, user.id, at("2026-11-10T10:00:00Z"));
+    expect(await recordActivity(db, user.id, at("2026-11-10T10:00:00Z"))).toMatchObject({ current: 2, best: 2 });
+  });
+
   it("counts finished placement skills and mock sections as activity", async () => {
     const user = await newLearner(db);
     await completedPlacementSkill(db, user.id, at("2026-11-08T10:00:00Z"));

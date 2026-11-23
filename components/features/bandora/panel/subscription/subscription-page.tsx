@@ -128,6 +128,9 @@ function UsageCard({ summary }: { summary: BillingSummary }) {
         {rows.map((row) => {
           if (!row) return null;
           const percent = usagePercent(row);
+          if (row.key === "full_mock") {
+            return <li key={row.key}>{summary.subscription.tier === "premium" ? t("subscription.mockDaily") : t("subscription.mockHalf")}</li>;
+          }
           const label = t(`subscription.quota.${row.key}`);
           return (
             <li key={row.key} className="bd-usage__row">
@@ -196,12 +199,13 @@ function PlanCard({ plan, current, savingsPercent }: { plan: BillingPlan; curren
       </p>
       <div className="bd-plan__rule" />
       <ul className="bd-plan__list">
-        {QUOTA_KEYS.map((key) => (plan.quotas[key] ? (
+        {QUOTA_KEYS.map((key) => (key !== "full_mock" && plan.quotas[key] ? (
           <li key={key}>
             <Check size={18} strokeWidth={2} aria-hidden />
             {t("subscription.quotaLine", { count: plan.quotas[key] ?? 0, label: t(`subscription.quota.${key}`) })}
           </li>
         ) : null))}
+        <li><Check size={18} strokeWidth={2} aria-hidden /> {t("subscription.mockDaily")}</li>
       </ul>
       <button type="button" className={`bd-btn bd-btn--block ${featured ? "bd-btn--cream" : "bd-btn--solid"}`} disabled={busy} onClick={() => void buy()}>
         {busy ? t("subscription.buying") : current ? t("subscription.renew") : t("subscription.buy")}

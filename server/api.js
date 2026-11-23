@@ -15,6 +15,8 @@ import { meRoutes } from "./routes/me.js";
 import { mockRoutes } from "./routes/mocks.js";
 import { notificationRoutes } from "./routes/notifications.js";
 import { onboardingRoutes } from "./routes/onboarding.js";
+import { lessonRoutes } from "./routes/lesson.js";
+import { pathRoutes } from "./routes/path.js";
 import { placementRoutes } from "./routes/placement.js";
 import { practiceRoutes } from "./routes/practice.js";
 import { speakingRoutes } from "./routes/speaking.js";
@@ -60,6 +62,8 @@ export function createApi(db, options = {}) {
   router.use("/api", meRoutes(auth));
   router.use("/api", onboardingRoutes(auth));
   router.use("/api", frameRoutes(auth));
+  router.use("/api", pathRoutes(auth));
+  router.use("/api", lessonRoutes(auth));
   router.use("/api", notificationRoutes(auth));
   router.use("/api/assistant", assistantRoutes(auth, options.assistant));
   router.use("/api/billing", billingRoutes(auth, { config: options.config, paymentProvider: options.paymentProvider }));

@@ -31,7 +31,7 @@ function Frame() {
   return (
     <div className="bd-shell">
       <a className="bd-skip" href="#content">{t("nav.skip")}</a>
-      <Header />
+      <Header onMore={() => setMore(true)} />
       <div className="bd-shell__body">
         <Sidebar />
         <main id="content" className="bd-main" tabIndex={-1}>
@@ -42,7 +42,7 @@ function Frame() {
         </main>
       </div>
       <EmailCard />
-      <BottomNav moreOpen={more} onMore={() => setMore(true)} />
+      <BottomNav />
       <MoreSheet open={more} onClose={() => setMore(false)} />
     </div>
   );

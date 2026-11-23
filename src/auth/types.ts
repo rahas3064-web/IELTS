@@ -22,6 +22,7 @@ export type Profile = {
   examDatePrecision: ExamPrecision | null;
   dailyMinutes: number | null;
   studyDays: number[];
+  placementMode?: "quick" | "full" | null;
   planPath?: string;
   reminderSmsEnabled?: boolean;
   reminderTime?: string;
@@ -34,6 +35,8 @@ export type Me = {
   user: MeUser;
   profile: Profile | null;
   onboarding: OnboardingState;
+  /** True after a placement attempt is completed. Absent only on older cached payloads. */
+  placementCompleted?: boolean;
   subscription: { plan: string; endsAt: string | null };
   emailCardDismissed: boolean;
 };

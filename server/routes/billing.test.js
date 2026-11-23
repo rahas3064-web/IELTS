@@ -44,7 +44,7 @@ describe("plan catalogue (migration 009)", () => {
     const byPlan = {};
     for (const q of quotas.rows) (byPlan[q.plan_key] ??= {})[q.quota_key] = q.monthly_limit;
     expect(byPlan.free).toEqual({ writing_scoring: 2, speaking_scoring: 2, assistant_messages: 10, full_mock: 0 });
-    const premium = { writing_scoring: 30, speaking_scoring: 30, assistant_messages: 150, full_mock: 4 };
+    const premium = { writing_scoring: 30, speaking_scoring: 30, assistant_messages: 150, full_mock: 0 };
     expect(byPlan.premium_monthly).toEqual(premium);
     expect(byPlan.premium_quarterly).toEqual(premium);
     expect(await count(t.db, "plan_prices", "is_active")).toBe(0);
@@ -57,7 +57,7 @@ describe("plan catalogue (migration 009)", () => {
     expect(res.json.plans.map((p) => [p.key, p.price])).toEqual([
       ["free", null], ["premium_monthly", null], ["premium_quarterly", null],
     ]);
-    expect(res.json.plans[1].quotas).toEqual({ writing_scoring: 30, speaking_scoring: 30, assistant_messages: 150, full_mock: 4 });
+    expect(res.json.plans[1].quotas).toEqual({ writing_scoring: 30, speaking_scoring: 30, assistant_messages: 150, full_mock: 0 });
     expect(res.json.quarterlySavingsPercent).toBeNull();
   });
 
@@ -103,7 +103,7 @@ describe("GET /api/billing", () => {
     await grant(user.id, { endsAt: new Date(t.clock.now().getTime() + 20 * DAY) });
     const res = await device.request("GET", "/api/billing");
     expect(res.json.subscription).toMatchObject({ plan: "premium_monthly", tier: "premium", status: "active" });
-    expect(res.json.usage.quotas.map((q) => q.limit)).toEqual([30, 30, 150, 4]);
+    expect(res.json.usage.quotas.map((q) => q.limit)).toEqual([30, 30, 150, 0]);
   });
 });
 

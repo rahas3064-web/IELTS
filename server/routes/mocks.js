@@ -1,17 +1,19 @@
 /* global process */
-// Full IELTS mock exams (spec: premium "mock AI"). Published mocks only. Starting a mock needs
-// the plan's mock_ai entitlement and one unit of its monthly full_mock quota (free: none;
-// premium: 4 per Tehran month, ai_quota_configs). Listening and Reading are marked against the
+// Full IELTS mock exams (spec: premium "mock AI"). Published mocks only. A full mock needs
+// the plan's mock_ai entitlement and has not already been started this Tehran day.
+// A half mock is open on the free plan, at most once every 7 Tehran days.
+// Listening and Reading are marked against the
 // answer key and converted with the band tables; Writing and Speaking are scored by AvalAI on
 // the four official criteria. A section the AI could not score keeps band null: nothing is
 // invented, and the overall band is only given when all four section bands exist.
 import express from "express";
 import { ApiError } from "../core/errors.js";
 import { parseBody, v } from "../core/validate.js";
-import { MOCK_PROMPT_VERSION, TYPED_SPEAKING_LABEL, scoreCriteria } from "../avalai.js";
+import { TYPED_SPEAKING_LABEL, scoreCriteria } from "../avalai.js";
 import { ensureBandTables, lookupBand, scaleRaw } from "../services/band-tables.js";
 import { publicItem } from "../services/content-bank.js";
-import { commitQuota, quotaStatus, releaseQuota, reserveQuota } from "../services/ai-quota.js";
+import { daysBetween, tehranDay } from "../core/tehran-time.js";
+import { quotaStatus } from "../services/ai-quota.js";
 import { entitlement } from "../services/entitlements.js";
 import { effectiveSubscription } from "../services/billing.js";
 import { wrap } from "./util.js";
@@ -118,7 +120,7 @@ export function mockRoutes(ctx, { score = scoreCriteria } = {}) {
     wrap(async (req, res) => {
       const info = await access(req.user.id);
       const { rows } = await db.query(
-        `select m.id, m.exam_type, m.title_fa, m.title_en,
+        `select m.id, m.exam_type, m.title_fa, m.title_en, m.mock_kind,
                 (select count(*)::int from mock_sections s where s.mock_id = m.id) as section_count,
                 a.id as attempt_id, a.status as attempt_status, a.overall_band
          from mocks m left join mock_attempts a on a.mock_id = m.id and a.user_id = $1
@@ -130,6 +132,7 @@ export function mockRoutes(ctx, { score = scoreCriteria } = {}) {
         tier: info.subscription.tier,
         enabled: info.enabled,
         quota: info.quota,
+        cadence: { full: "daily", half: "7d" },
         aiReady: Boolean(process.env.AVALAI_API_KEY) || score !== scoreCriteria,
         mocks: rows.map((row) => ({
           id: row.id,
@@ -137,7 +140,8 @@ export function mockRoutes(ctx, { score = scoreCriteria } = {}) {
           title: row.title_fa,
           titleEn: row.title_en,
           sectionCount: row.section_count,
-          locked: !info.enabled,
+          kind: row.mock_kind,
+          locked: row.mock_kind === "half" ? false : !info.enabled,
           attempt: row.attempt_id
             ? { id: row.attempt_id, status: row.attempt_status, overallBand: row.overall_band == null ? null : Number(row.overall_band) }
             : null,
@@ -153,7 +157,7 @@ export function mockRoutes(ctx, { score = scoreCriteria } = {}) {
     wrap(async (req, res) => {
       if (!UUID.test(req.params.id)) throw new ApiError(404, "not_found");
       const { rows } = await db.query(
-        "select id from mocks where id = $1 and status = 'published' and not is_dev_fixture",
+        "select id, mock_kind from mocks where id = $1 and status = 'published' and not is_dev_fixture",
         [req.params.id],
       );
       const mock = rows[0];
@@ -164,33 +168,38 @@ export function mockRoutes(ctx, { score = scoreCriteria } = {}) {
         return;
       }
       const info = await access(req.user.id);
-      if (!info.enabled) throw lockedMock();
+      const kind = mock.mock_kind === "half" ? "half" : "full";
+      if (kind === "full" && !info.enabled) throw lockedMock();
       const now = ctx.now();
-      const reservation = await reserveQuota(db, {
-        // 007 has no separate "mock" operation; a mock is mostly writing/speaking AI scoring.
-        userId: req.user.id, planKey: info.subscription.plan, quotaKey: "full_mock", operation: "writing_scoring", now,
-      });
-      let attemptId;
-      try {
-        attemptId = await db.transaction(async (tx) => {
-          const attempt = await tx.query(
-            "insert into mock_attempts (user_id, mock_id, mode) values ($1, $2, 'full') returning id",
-            [req.user.id, mock.id],
-          );
-          const sections = await tx.query("select skill from mock_sections where mock_id = $1", [mock.id]);
-          for (const section of sections.rows) {
-            await tx.query(
-              "insert into mock_section_attempts (mock_attempt_id, skill) values ($1, $2)",
-              [attempt.rows[0].id, section.skill],
-            );
-          }
-          return attempt.rows[0].id;
-        });
-      } catch (error) {
-        await releaseQuota(db, reservation.eventId, ctx.now());
-        throw error;
+      const previous = await db.query(
+        `select a.started_at from mock_attempts a join mocks m on m.id = a.mock_id
+         where a.user_id = $1 and m.mock_kind = $2 order by a.started_at desc limit 1`,
+        [req.user.id, kind],
+      );
+      if (previous.rows[0]) {
+        const gap = daysBetween(tehranDay(previous.rows[0].started_at), tehranDay(now));
+        const blocked = kind === "full" ? gap < 1 : gap < 7;
+        if (blocked) {
+          throw new ApiError(429, "mock_cadence", {
+            fa: kind === "full" ? "امروز یک آزمون کامل دادی. فردا دوباره می‌توانی." : "آزمون نیمه‌وقت بعدی ۷ روز دیگر باز می‌شود.",
+            en: kind === "full" ? "A full mock was already started today." : "The next half-mock opens in 7 days.",
+          });
+        }
       }
-      await commitQuota(db, reservation.eventId, { ref: attemptId, promptVersion: MOCK_PROMPT_VERSION, now: ctx.now() });
+      const attemptId = await db.transaction(async (tx) => {
+        const attempt = await tx.query(
+          "insert into mock_attempts (user_id, mock_id, mode, started_at) values ($1, $2, 'full', $3) returning id",
+          [req.user.id, mock.id, now],
+        );
+        const sections = await tx.query("select skill from mock_sections where mock_id = $1", [mock.id]);
+        for (const section of sections.rows) {
+          await tx.query(
+            "insert into mock_section_attempts (mock_attempt_id, skill) values ($1, $2)",
+            [attempt.rows[0].id, section.skill],
+          );
+        }
+        return attempt.rows[0].id;
+      });
       res.status(201).json({ attemptId, resumed: false });
     }),
   );

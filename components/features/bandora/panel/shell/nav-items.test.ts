@@ -27,17 +27,18 @@ describe("sidebar structure (spec S2)", () => {
 });
 
 describe("mobile bottom navigation", () => {
-  it("has three shortcuts (the fourth slot is the More button)", () => {
-    expect(BOTTOM_NAV_ITEMS.map((item) => item.href)).toEqual(["/app", "/app/plan", "/app/practice"]);
+  it("has خانه، دستیار and تمرین", () => {
+    expect(BOTTOM_NAV_ITEMS.map((item) => item.href)).toEqual(["/app", "/app/assistant", "/app/practice"]);
+    expect(BOTTOM_NAV_ITEMS.map((item) => item.shortKey ?? item.labelKey)).toEqual(["nav.home", "nav.assistant", "nav.practice"]);
   });
 
   it("More holds every remaining item exactly once", () => {
     const shown = new Set(BOTTOM_NAV_ITEMS.map((item) => item.id));
     expect(MORE_ITEMS.map((item) => item.href)).toEqual([
+      "/app/plan",
       "/app/mock",
       "/app/progress",
       "/app/feedback",
-      "/app/assistant",
       "/app/profile",
       "/app/subscription",
     ]);

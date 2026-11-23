@@ -17,14 +17,11 @@ export function toPublicUser(row) {
   };
 }
 
-/**
- * Where the onboarding wizard should resume. Step 2 may legitimately be "unknown"
- * (null band), which has no column of its own, so an empty step 2 resumes at 2.
- */
+/** Where the intake wizard should resume: type, then goal, then placement mode. */
 function nextStep(row) {
   if (row.onboarding_completed_at) return null;
   if (!row.exam_type) return 1;
-  if (row.target_band === null && row.exam_date_precision === null) return 2;
+  if (row.target_band === null || row.exam_date_precision === null) return 2;
   return 3;
 }
 
@@ -35,9 +32,13 @@ export async function loadMe(db, userId, now = new Date()) {
             (u.password_hash is not null) as has_password,
             (u.phone_verified_at is not null) as phone_verified,
             p.exam_type, p.target_band, to_char(p.exam_date, 'YYYY-MM-DD') as exam_date,
-            p.exam_date_precision, p.daily_minutes, p.study_days, p.plan_path,
+            p.exam_date_precision, p.daily_minutes, p.study_days, p.placement_mode, p.plan_path,
             p.reminder_sms_enabled, to_char(p.reminder_time, 'HH24:MI') as reminder_time,
             p.onboarding_completed_at, p.email_card_dismissed_at,
+            exists (
+              select 1 from placement_attempts a
+              where a.user_id = u.id and a.status = 'completed'
+            ) as placement_completed,
             sub.plan_key as sub_plan_key, sub.status as sub_status, sub.ends_at as sub_ends_at,
             sub.grace_ends_at as sub_grace_ends_at, sub.tier as sub_tier
      from users u left join learner_profiles p on p.user_id = u.id
@@ -62,6 +63,7 @@ export async function loadMe(db, userId, now = new Date()) {
         examDatePrecision: row.exam_date_precision ?? null,
         dailyMinutes: row.daily_minutes ?? null,
         studyDays: (row.study_days ?? []).map(Number),
+        placementMode: row.placement_mode ?? null,
         planPath: row.plan_path,
         reminderSmsEnabled: row.reminder_sms_enabled,
         reminderTime: row.reminder_time,
@@ -77,6 +79,7 @@ export async function loadMe(db, userId, now = new Date()) {
     user: toPublicUser(row),
     profile,
     onboarding: { completed: Boolean(row.onboarding_completed_at), step: nextStep(row) },
+    placementCompleted: Boolean(row.placement_completed),
     // From the live subscriptions row (active, or inside the grace window); free + null otherwise.
     subscription: { plan: live.plan, endsAt: live.endsAt },
     emailCardDismissed: Boolean(row.email_card_dismissed_at),

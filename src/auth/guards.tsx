@@ -25,8 +25,9 @@ export function RequireAuth({ children, onboarding = "complete" }: RequireAuthPr
   }
   if (onboarding === "complete" && !me.onboarding.completed) return <Navigate to="/app/onboarding" replace />;
   if (onboarding === "incomplete" && me.onboarding.completed) {
-    // Right after the third step the visitor goes on to the placement intro; a returning user goes to the panel.
-    return <Navigate to={justOnboarded ? "/app/placement/intro" : "/app"} replace />;
+    // A finished mode goes to the intro. Skip has no mode, so it lands on /app.
+    const intro = justOnboarded && me.profile?.placementMode;
+    return <Navigate to={intro ? "/app/placement/intro" : "/app"} replace />;
   }
   return <>{children}</>;
 }

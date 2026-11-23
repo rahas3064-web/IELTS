@@ -73,7 +73,8 @@ describe("runSeed", () => {
     const after = await counts();
     for (const [table, n] of Object.entries(after)) {
       // plans / ai_quota_configs / plan_prices / feature_entitlements hold the catalogue inserted by migrations 009, 010 and 012, not by runSeed.
-      if (!["system_settings", "schema_migrations", "plans", "ai_quota_configs", "plan_prices", "feature_entitlements"].includes(table)) expect(n, table).toBe(0);
+      // path_chapters / path_nodes are the home catalogue inserted by migration 021.
+      if (!["system_settings", "schema_migrations", "plans", "ai_quota_configs", "plan_prices", "feature_entitlements", "path_chapters", "path_nodes"].includes(table)) expect(n, table).toBe(0);
     }
   });
 

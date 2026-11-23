@@ -7,11 +7,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "@/src/i18n";
 import { ProfileStep } from "@/components/features/bandora/panel/auth/profile-step";
 
-const post = vi.fn(async () => ({ user: { id: "u" }, referral: null }));
+const post = vi.fn(async (_path: string, _body?: unknown) => ({ user: { id: "u" }, referral: null }));
 const refresh = vi.fn(async () => null);
 
 vi.mock("@/src/lib/api-client", () => ({
-  api: { post: (...args: unknown[]) => post(...args) },
+  api: { post: (...args: [string, unknown?]) => post(...args) },
   ApiClientError: class ApiClientError extends Error {
     status = 400;
   },

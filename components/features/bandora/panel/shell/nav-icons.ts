@@ -1,25 +1,15 @@
-import {
-  CalendarDays,
-  CreditCard,
-  FileText,
-  LayoutDashboard,
-  LineChart,
-  MessageSquare,
-  PenLine,
-  Sparkles,
-  UserRound,
-  type LucideIcon,
-} from "lucide-react";
+import type { BdIconName } from "@/components/features/bandora/panel/icons/bd-icon";
 import type { NavId } from "@/components/features/bandora/panel/shell/nav-items";
 
-export const NAV_ICONS: Record<NavId, LucideIcon> = {
-  dashboard: LayoutDashboard,
-  plan: CalendarDays,
-  practice: PenLine,
-  mock: FileText,
-  progress: LineChart,
-  feedback: MessageSquare,
-  assistant: Sparkles,
-  profile: UserRound,
-  subscription: CreditCard,
+/** Bandora SVGs for every nav id. The three tabs use the nav-* art, including -active. */
+export const NAV_ICONS: Record<NavId, BdIconName> = {
+  dashboard: "nav-home",
+  assistant: "nav-assistant",
+  practice: "nav-practice",
+  plan: "plan-calendar",
+  mock: "node-challenge",
+  progress: "daily-goal",
+  feedback: "skill-writing",
+  profile: "settings",
+  subscription: "premium-crown",
 };

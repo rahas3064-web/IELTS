@@ -3,17 +3,17 @@ import { useLocation } from "react-router-dom";
 import { LogOut } from "lucide-react";
 import Link from "@/components/link";
 import { useT } from "@/src/i18n";
+import { BdIcon } from "@/components/features/bandora/panel/icons/bd-icon";
 import { NAV_ICONS } from "@/components/features/bandora/panel/shell/nav-icons";
 import { SIDEBAR_BOTTOM, SIDEBAR_GROUPS, isNavActive, type NavItem } from "@/components/features/bandora/panel/shell/nav-items";
 import { useLogout } from "@/components/features/bandora/panel/shell/use-logout";
 
 function SidebarLink({ item, pathname }: { item: NavItem; pathname: string }) {
   const { t } = useT();
-  const Icon = NAV_ICONS[item.id];
   const active = isNavActive(pathname, item.href);
   return (
     <Link href={item.href} className="bd-navlink" aria-current={active ? "page" : undefined}>
-      <Icon size={18} strokeWidth={1.6} aria-hidden />
+      <BdIcon name={NAV_ICONS[item.id]} active={active} size={22} />
       <span>{t(item.labelKey)}</span>
     </Link>
   );

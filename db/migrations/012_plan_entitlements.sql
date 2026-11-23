@@ -12,5 +12,8 @@ insert into feature_entitlements (plan_key, feature_key, enabled, limit_value) v
   ('premium_quarterly', 'practice_parts', true, null),
   ('free', 'mock_ai', false, null),
   ('premium_monthly', 'mock_ai', true, null),
-  ('premium_quarterly', 'mock_ai', true, null)
+  ('premium_quarterly', 'mock_ai', true, null),
+  ('free', 'half_mock', true, 7),
+  ('premium_monthly', 'half_mock', true, 7),
+  ('premium_quarterly', 'half_mock', true, 7)
 on conflict (plan_key, feature_key) do nothing;

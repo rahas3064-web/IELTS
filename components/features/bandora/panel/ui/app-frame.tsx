@@ -6,6 +6,8 @@ import "@/components/features/bandora/panel/panel.css";
 const FONTS =
   "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,500&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Vazirmatn:wght@300;400;500;600;700&display=swap";
 const ESTEDAD = "https://cdn.jsdelivr.net/npm/@fontsource/estedad@5/index.css";
+const NEWSREADER =
+  "https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&display=swap";
 
 /** Root of every login, onboarding and panel screen: tokens, fonts, `lang` and `dir` from the user's locale. */
 export function AppFrame({ children }: { children: ReactNode }) {
@@ -16,6 +18,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="stylesheet" href={FONTS} />
       <link rel="stylesheet" href={ESTEDAD} />
+      <link rel="stylesheet" href={NEWSREADER} />
       {children}
     </div>
   );

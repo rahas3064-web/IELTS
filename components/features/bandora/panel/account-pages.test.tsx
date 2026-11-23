@@ -7,11 +7,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "@/src/i18n";
 import { ProfilePage } from "@/components/features/bandora/panel/account-pages";
 
-const post = vi.fn(async () => ({ ok: true }));
+const post = vi.fn(async (_path: string, _body?: unknown) => ({ ok: true }));
 const logout = vi.fn(async () => undefined);
 
 vi.mock("@/src/lib/api-client", () => ({
-  api: { post: (...args: unknown[]) => post(...args) },
+  api: { post: (...args: [string, unknown?]) => post(...args) },
 }));
 
 vi.mock("@/src/auth/auth-provider", () => ({

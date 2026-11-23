@@ -46,8 +46,13 @@ const NEW_TABLES = {
   "016_speaking_score_state": [],
   // Drops users_password_needs_email so a password can exist without an email.
   "017_password_without_email": [],
+  "018_placement_intake": [],
+  "019_placement_mode": [],
+  "020_mock_cadence": [],
+  "021_path": ["path_chapters", "path_nodes", "path_node_progress"],
+  "022_lesson_runs": ["lesson_runs"],
 };
-const COLUMN_PATCHES = new Set(["016_speaking_score_state", "017_password_without_email"]);
+const COLUMN_PATCHES = new Set(["016_speaking_score_state", "017_password_without_email", "018_placement_intake", "019_placement_mode", "020_mock_cadence"]);
 const CORE = [
   "users", "otp_codes", "otp_locks", "sessions", "learner_profiles", "admin_credentials", "audit_logs",
   "notifications", "sms_messages", "user_streaks", "rate_limits", "system_settings", "job_runs",
@@ -75,7 +80,7 @@ describe("migration set", () => {
     const result = await db.query("select table_name from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE'");
     const expected = [...CORE, "schema_migrations", ...Object.values(NEW_TABLES).flat()].sort();
     expect(result.rows.map((r) => r.table_name).sort()).toEqual(expected);
-    expect(expected.length).toBe(74);
+    expect(expected.length).toBe(78);
   });
 
   it.each(Object.entries(NEW_TABLES))("%s creates its tables", async (version, tables) => {
